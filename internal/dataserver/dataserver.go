@@ -178,3 +178,19 @@ func (ds *DataServer) putFileBlock(fileName string, blockID int, blockSize int, 
 	// TODO: commit to update metadata
 	return nil
 }
+
+func (ds *DataServer) CommitFileBlock(ctx context.Context, in *pb.CommitFileBlockRequest) (*pb.CommitFileBlockReply, error) {
+	fileName := in.GetFileName()
+	blockID := in.GetBlockID()
+	blockSize := in.GetBlockSize()
+	ds.commitFileBlock(fileName, int(blockID), int(blockSize))
+	reply := &pb.CommitFileBlockReply{
+		Ok: true,
+	}
+	return reply, nil
+}
+
+func (ds *DataServer) commitFileBlock(fileName string, blockID int, blockSize int) {
+	// Commit to update metadata
+	ds.metaData.AddFileBlock("localhost", fileName, int64(blockID), int64(blockSize))
+}

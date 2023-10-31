@@ -25,6 +25,7 @@ type DataServerClient interface {
 	GetFileBlock(ctx context.Context, in *GetFileBlockRequest, opts ...grpc.CallOption) (*GetFileBlockReply, error)
 	GetFileBlocks(ctx context.Context, in *GetFileBlocksRequest, opts ...grpc.CallOption) (*GetFileBlocksReply, error)
 	PutFileBlock(ctx context.Context, in *PutFileBlockRequest, opts ...grpc.CallOption) (*PutFileBlockReply, error)
+	CommitFileBlock(ctx context.Context, in *CommitFileBlockRequest, opts ...grpc.CallOption) (*CommitFileBlockReply, error)
 }
 
 type dataServerClient struct {
@@ -62,6 +63,15 @@ func (c *dataServerClient) PutFileBlock(ctx context.Context, in *PutFileBlockReq
 	return out, nil
 }
 
+func (c *dataServerClient) CommitFileBlock(ctx context.Context, in *CommitFileBlockRequest, opts ...grpc.CallOption) (*CommitFileBlockReply, error) {
+	out := new(CommitFileBlockReply)
+	err := c.cc.Invoke(ctx, "/dataserver.DataServer/CommitFileBlock", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DataServerServer is the server API for DataServer service.
 // All implementations must embed UnimplementedDataServerServer
 // for forward compatibility
@@ -69,6 +79,7 @@ type DataServerServer interface {
 	GetFileBlock(context.Context, *GetFileBlockRequest) (*GetFileBlockReply, error)
 	GetFileBlocks(context.Context, *GetFileBlocksRequest) (*GetFileBlocksReply, error)
 	PutFileBlock(context.Context, *PutFileBlockRequest) (*PutFileBlockReply, error)
+	CommitFileBlock(context.Context, *CommitFileBlockRequest) (*CommitFileBlockReply, error)
 	mustEmbedUnimplementedDataServerServer()
 }
 
@@ -84,6 +95,9 @@ func (UnimplementedDataServerServer) GetFileBlocks(context.Context, *GetFileBloc
 }
 func (UnimplementedDataServerServer) PutFileBlock(context.Context, *PutFileBlockRequest) (*PutFileBlockReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PutFileBlock not implemented")
+}
+func (UnimplementedDataServerServer) CommitFileBlock(context.Context, *CommitFileBlockRequest) (*CommitFileBlockReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CommitFileBlock not implemented")
 }
 func (UnimplementedDataServerServer) mustEmbedUnimplementedDataServerServer() {}
 
@@ -152,6 +166,24 @@ func _DataServer_PutFileBlock_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DataServer_CommitFileBlock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CommitFileBlockRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataServerServer).CommitFileBlock(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dataserver.DataServer/CommitFileBlock",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataServerServer).CommitFileBlock(ctx, req.(*CommitFileBlockRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DataServer_ServiceDesc is the grpc.ServiceDesc for DataServer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -170,6 +202,10 @@ var DataServer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PutFileBlock",
 			Handler:    _DataServer_PutFileBlock_Handler,
+		},
+		{
+			MethodName: "CommitFileBlock",
+			Handler:    _DataServer_CommitFileBlock_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

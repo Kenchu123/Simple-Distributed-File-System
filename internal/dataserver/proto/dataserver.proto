@@ -8,6 +8,7 @@ service DataServer {
     rpc GetFileBlock(GetFileBlockRequest) returns (GetFileBlockReply) {}
     rpc GetFileBlocks(GetFileBlocksRequest) returns (GetFileBlocksReply) {}
     rpc PutFileBlock(PutFileBlockRequest) returns (PutFileBlockReply) {}
+    rpc CommitFileBlock(CommitFileBlockRequest) returns (CommitFileBlockReply) {}
 }
 
 message GetFileBlockRequest {
@@ -43,3 +44,14 @@ message PutFileBlockRequest {
 message PutFileBlockReply {
     bool ok = 1;
 }
+
+message CommitFileBlockRequest {
+    string fileName = 1;
+    int64 blockID = 2;
+    int64 blockSize = 3;
+}
+
+message CommitFileBlockReply {
+    bool ok = 1;
+}
+

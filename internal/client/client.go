@@ -156,6 +156,8 @@ func (c *Client) getFileBlock(hostname, filename string, blockID int64) ([]byte,
 	if err != nil {
 		return nil, fmt.Errorf("failed to get file block of %s: %v", filename, err)
 	}
+	client.CommitFileBlock(ctx, &dataServerProto.CommitFileBlockRequest{FileName: filename, BlockID: blockID})
+	logrus.Infof("Committed block %d of file %s to data server %s", blockID, filename, hostname)
 	return r.GetData(), nil
 }
 
