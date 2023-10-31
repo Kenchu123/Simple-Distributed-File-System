@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+option go_package = "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver";
+
+package leaderserver;
+
+service LeaderServer {
+    rpc GetLeader(GetLeaderRequest) returns (GetLeaderReply) {}
+    rpc GetBlockInfo(GetBlockInfoRequest) returns (GetBlockInfoReply) {}
+    rpc GetFileOK(GetFileOKRequest) returns (GetFileOKReply) {}
+}
+
+message GetLeaderRequest {}
+
+message GetLeaderReply {
+    string leader = 1;
+}
+
+message GetBlockInfoRequest {
+    string fileName = 1;
+}
+
+message GetBlockInfoReply {
+    message BlockMeta {
+        repeated string hostNames = 1;
+        string fileName = 2;
+        int64 blockID = 3;
+    }
+    map<int64, BlockMeta> blockInfo = 1;
+}
+
+message GetFileOKRequest {
+    string fileName = 1;
+}
+
+message GetFileOKReply {}

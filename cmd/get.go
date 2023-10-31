@@ -18,7 +18,7 @@ func get(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	err = client.GetFile("test", "test")
+	err = client.GetFile("test", "test_combine")
 	if err != nil {
 		logrus.Fatal(err)
 	}

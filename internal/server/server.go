@@ -1,6 +1,8 @@
 package server
 
 import (
+	"sync"
+
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/config"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/dataserver"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver"
@@ -28,8 +30,15 @@ func NewServer(configPath string) (*Server, error) {
 
 // Run starts the server.
 func (s *Server) Run() {
-	// go s.LeaderServer.Run()
-	// go s.DataServer.Run()
-	s.DataServer.Run()
-	s.LeaderServer.Run()
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		s.LeaderServer.Run()
+	}()
+	go func() {
+		defer wg.Done()
+		s.DataServer.Run()
+	}()
+	wg.Wait()
 }
