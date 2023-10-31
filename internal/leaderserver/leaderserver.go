@@ -85,3 +85,15 @@ func (l *LeaderServer) SetLeader(leader string) {
 }
 
 // TODO: Elect Leader, Put file, get file, del file
+
+func (l *LeaderServer) acquireFileSemaphore(fileName string, weight int64) error {
+	if _, ok := l.fileSemaphore[fileName]; !ok {
+		return fmt.Errorf("file %s not found", fileName)
+	}
+	l.fileSemaphore[fileName].Acquire(context.Background(), weight)
+	return nil
+}
+
+func (l *LeaderServer) releaseFileSemaphore(fileName string, weight int64) {
+	l.fileSemaphore[fileName].Release(weight)
+}

@@ -13,6 +13,7 @@ type Config struct {
 	LeaderServerPort string    `yaml:"leader_server_port"`
 	DataServerPort   string    `yaml:"data_server_port"`
 	BlocksDir        string    `yaml:"blocks_dir"`
+	BlockSize        int64     `yaml:"block_size"`
 }
 
 // Machine is the configuration for a single server

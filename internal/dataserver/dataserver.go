@@ -59,73 +59,8 @@ func (ds *DataServer) Run() {
 	}
 }
 
-// GetFileBlocks gets all file blocks of a file and returns them to the client through gRPC.
-func (ds *DataServer) GetFileBlocks(ctx context.Context, in *pb.GetFileBlocksRequest) (*pb.GetFileBlocksReply, error) {
-	fileName := in.GetFileName()
-	dataBlocks, err := ds.getFileBlocks(fileName)
-	if err != nil {
-		return nil, err
-	}
-	reply := &pb.GetFileBlocksReply{
-		FileName:   fileName,
-		DataBlocks: []*pb.GetFileBlocksReply_DataBlocks{},
-	}
-	for _, dataBlock := range dataBlocks.dataBlocks {
-		reply.DataBlocks = append(reply.DataBlocks, &pb.GetFileBlocksReply_DataBlocks{
-			BlockID: dataBlock.BlockID,
-			Data:    dataBlock.Data,
-		})
-	}
-	return reply, nil
-}
-
-// getFileBlocks gets all file blocks of a file.
-func (ds *DataServer) getFileBlocks(filename string) (*DataBlocks, error) {
-	// get fileBlocks from metadata using filename
-	// for each fileBlock, read data from filepath
-
-	// TODO: DELETE THIS PART
-	ds.metaData.FileInfo["test"] = map[int64]metadata.BlockMeta{
-		0: {
-			FileName:  "test",
-			BlockID:   0,
-			BlockSize: 10,
-		},
-		1: {
-			FileName:  "test",
-			BlockID:   1,
-			BlockSize: 15,
-		},
-	}
-	blockInfo, err := ds.metaData.GetBlockInfo(filename)
-	if err != nil {
-		return nil, fmt.Errorf("failed to getFileBlocks: %v", err)
-	}
-	dataBlocks := &DataBlocks{fileName: filename}
-	for blockID, blockMeta := range blockInfo {
-		filePath := filepath.Join(ds.blocksDir, filename+"_"+strconv.Itoa(int(blockID)))
-		data, err := os.ReadFile(filePath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read file %s: %v", filePath, err)
-		}
-		dataBlocks.dataBlocks = append(dataBlocks.dataBlocks, DataBlock{blockMeta.BlockID, data})
-	}
-	return dataBlocks, nil
-}
-
 // GetFileBlock gets a file block of a file and returns it to the client through gRPC.
 func (ds *DataServer) GetFileBlock(ctx context.Context, in *pb.GetFileBlockRequest) (*pb.GetFileBlockReply, error) {
-	// TODO: DELETE THIS PART
-	ds.metaData.FileInfo["test"] = map[int64]metadata.BlockMeta{
-		0: {
-			FileName: "test",
-			BlockID:  0,
-		},
-		1: {
-			FileName: "test",
-			BlockID:  1,
-		},
-	}
 	fileName := in.GetFileName()
 	blockID := in.GetBlockID()
 	dataBlock, err := ds.getFileBlock(fileName, blockID)
@@ -142,24 +77,19 @@ func (ds *DataServer) getFileBlock(fileName string, blockID int64) (*DataBlock, 
 	// get fileBlock from metadata using filename and blockID
 	// read data from filepath
 	// return dataBlock
-	blockMeta, err := ds.metaData.GetBlockMeta(fileName, blockID)
-	if err != nil {
-		return nil, err
-	}
-	filePath := filepath.Join(ds.blocksDir, blockMeta.FileName+"_"+strconv.Itoa(int(blockMeta.BlockID)))
+	filePath := filepath.Join(ds.blocksDir, fileName+"_"+strconv.Itoa(int(blockID)))
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file %s: %v", filePath, err)
 	}
-	return &DataBlock{blockMeta.BlockID, data}, nil
+	return &DataBlock{blockID, data}, nil
 }
 
 func (ds *DataServer) PutFileBlock(ctx context.Context, in *pb.PutFileBlockRequest) (*pb.PutFileBlockReply, error) {
 	fileName := in.GetFileName()
 	blockID := in.GetBlockID()
-	blockSize := in.GetBlockSize()
 	data := in.GetData()
-	err := ds.putFileBlock(fileName, int(blockID), int(blockSize), data)
+	err := ds.putFileBlock(fileName, blockID, data)
 	if err != nil {
 		return nil, err
 	}
@@ -169,28 +99,11 @@ func (ds *DataServer) PutFileBlock(ctx context.Context, in *pb.PutFileBlockReque
 	return reply, nil
 }
 
-func (ds *DataServer) putFileBlock(fileName string, blockID int, blockSize int, data []byte) error {
-	filePath := filepath.Join(ds.blocksDir, fileName, "_", strconv.Itoa(blockID))
+func (ds *DataServer) putFileBlock(fileName string, blockID int64, data []byte) error {
+	filePath := filepath.Join(ds.blocksDir, fileName+"_"+strconv.Itoa(int(blockID)))
 	err := os.WriteFile(filePath, data, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to write file %s: %v", filePath, err)
 	}
-	// TODO: commit to update metadata
 	return nil
-}
-
-func (ds *DataServer) CommitFileBlock(ctx context.Context, in *pb.CommitFileBlockRequest) (*pb.CommitFileBlockReply, error) {
-	fileName := in.GetFileName()
-	blockID := in.GetBlockID()
-	blockSize := in.GetBlockSize()
-	ds.commitFileBlock(fileName, int(blockID), int(blockSize))
-	reply := &pb.CommitFileBlockReply{
-		Ok: true,
-	}
-	return reply, nil
-}
-
-func (ds *DataServer) commitFileBlock(fileName string, blockID int, blockSize int) {
-	// Commit to update metadata
-	ds.metaData.AddFileBlock("localhost", fileName, int64(blockID), int64(blockSize))
 }

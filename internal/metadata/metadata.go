@@ -15,7 +15,6 @@ type BlockMeta struct {
 	HostNames []string
 	FileName  string
 	BlockID   int64
-	BlockSize int64
 }
 
 // NewMetadata creates a new metadata.
@@ -25,8 +24,13 @@ func NewMetadata() *Metadata {
 	}
 }
 
+func (m *Metadata) IsFileExist(fileName string) bool {
+	_, ok := m.FileInfo[fileName]
+	return ok
+}
+
 // AddFileBlock adds a file block to metadata.
-func (m *Metadata) AddFileBlock(hostname, fileName string, blockID int64, blockSize int64) {
+func (m *Metadata) AddFileBlock(hostname, fileName string, blockID int64) {
 	if _, ok := m.FileInfo[fileName]; !ok {
 		m.FileInfo[fileName] = make(map[int64]BlockMeta)
 	}
@@ -34,8 +38,12 @@ func (m *Metadata) AddFileBlock(hostname, fileName string, blockID int64, blockS
 		HostNames: append(m.FileInfo[fileName][int64(blockID)].HostNames, hostname),
 		FileName:  fileName,
 		BlockID:   blockID,
-		BlockSize: blockSize,
 	}
+}
+
+// AddOrUpdateFile adds or updates a file to metadata.
+func (m *Metadata) AddOrUpdateFile(fileName string, blockInfo BlockInfo) {
+	m.FileInfo[fileName] = blockInfo
 }
 
 func (m *Metadata) GetBlockInfo(fileName string) (BlockInfo, error) {
@@ -55,10 +63,3 @@ func (m *Metadata) GetBlockMeta(fileName string, blockID int64) (BlockMeta, erro
 	}
 	return blockInfo[blockID], nil
 }
-
-// GetFileBlocks gets all file blocks of a file.
-// func (m *Metadata) GetFileBlocks(fileName string) []BlockMeta {
-// 	return m.BlockInfo[fileName]
-// }
-
-// TODO: Send metadata to leader.
