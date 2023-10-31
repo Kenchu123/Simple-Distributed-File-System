@@ -60,6 +60,31 @@ func (ds *DataServer) Run() {
 }
 
 // GetFileBlock gets a file block of a file and returns it to the client through gRPC.
+// func (ds *DataServer) GetFileBlock(ctx context.Context, in *pb.GetFileBlockRequest) (*pb.GetFileBlockReply, error) {
+// 	fileName := in.GetFileName()
+// 	blockID := in.GetBlockID()
+// 	dataBlock, err := ds.getFileBlock(fileName, blockID)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	reply := &pb.GetFileBlockReply{
+// 		Data: dataBlock.Data,
+// 	}
+// 	return reply, nil
+// }
+
+// func (ds *DataServer) getFileBlock(fileName string, blockID int64) (*DataBlock, error) {
+// 	// get fileBlock from metadata using filename and blockID
+// 	// read data from filepath
+// 	// return dataBlock
+// 	filePath := filepath.Join(ds.blocksDir, fileName+"_"+strconv.Itoa(int(blockID)))
+// 	data, err := os.ReadFile(filePath)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to read file %s: %v", filePath, err)
+// 	}
+// 	return &DataBlock{blockID, data}, nil
+// }
+
 func (ds *DataServer) GetFileBlock(ctx context.Context, in *pb.GetFileBlockRequest) (*pb.GetFileBlockReply, error) {
 	fileName := in.GetFileName()
 	blockID := in.GetBlockID()

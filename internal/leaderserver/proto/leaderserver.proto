@@ -10,7 +10,13 @@ service LeaderServer {
     rpc GetFileOK(GetFileOKRequest) returns (GetFileOKReply) {}
     rpc PutBlockInfo(PutBlockInfoRequest) returns (PutBlockInfoReply) {}
     rpc PutFileOK(PutFileOKRequest) returns (PutFileOKReply) {}
+    rpc GetMetadata(GetMetadataRequest) returns (GetMetadataReply) {}
 }
+
+message BlockInfo {
+    map<int64, BlockMeta> blockInfo = 1;
+}
+
 message BlockMeta {
     repeated string hostNames = 1;
     string fileName = 2;
@@ -52,3 +58,9 @@ message PutFileOKRequest {
 }
 
 message PutFileOKReply {}
+
+message GetMetadataRequest {}
+
+message GetMetadataReply {
+    map<string, BlockInfo> fileInfo = 1;
+}

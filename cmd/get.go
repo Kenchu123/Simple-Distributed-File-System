@@ -7,10 +7,12 @@ import (
 )
 
 var getCmd = &cobra.Command{
-	Use:   "get",
-	Short: "get file from SDFS",
-	Long:  `get file from SDFS`,
-	Run:   get,
+	Use:     "get [sdfsfilename] [localfilename]",
+	Short:   "get file from SDFS",
+	Long:    `get file from SDFS`,
+	Example: `  sdfs get sdfs_test local_test`,
+	Args:    cobra.ExactArgs(2),
+	Run:     get,
 }
 
 func get(cmd *cobra.Command, args []string) {
@@ -18,7 +20,7 @@ func get(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	err = client.GetFile("test", "test_combine")
+	err = client.GetFile(args[0], args[1])
 	if err != nil {
 		logrus.Fatal(err)
 	}

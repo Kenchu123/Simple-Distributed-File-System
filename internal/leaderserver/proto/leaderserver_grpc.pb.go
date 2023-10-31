@@ -27,6 +27,7 @@ type LeaderServerClient interface {
 	GetFileOK(ctx context.Context, in *GetFileOKRequest, opts ...grpc.CallOption) (*GetFileOKReply, error)
 	PutBlockInfo(ctx context.Context, in *PutBlockInfoRequest, opts ...grpc.CallOption) (*PutBlockInfoReply, error)
 	PutFileOK(ctx context.Context, in *PutFileOKRequest, opts ...grpc.CallOption) (*PutFileOKReply, error)
+	GetMetadata(ctx context.Context, in *GetMetadataRequest, opts ...grpc.CallOption) (*GetMetadataReply, error)
 }
 
 type leaderServerClient struct {
@@ -82,6 +83,15 @@ func (c *leaderServerClient) PutFileOK(ctx context.Context, in *PutFileOKRequest
 	return out, nil
 }
 
+func (c *leaderServerClient) GetMetadata(ctx context.Context, in *GetMetadataRequest, opts ...grpc.CallOption) (*GetMetadataReply, error) {
+	out := new(GetMetadataReply)
+	err := c.cc.Invoke(ctx, "/leaderserver.LeaderServer/GetMetadata", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // LeaderServerServer is the server API for LeaderServer service.
 // All implementations must embed UnimplementedLeaderServerServer
 // for forward compatibility
@@ -91,6 +101,7 @@ type LeaderServerServer interface {
 	GetFileOK(context.Context, *GetFileOKRequest) (*GetFileOKReply, error)
 	PutBlockInfo(context.Context, *PutBlockInfoRequest) (*PutBlockInfoReply, error)
 	PutFileOK(context.Context, *PutFileOKRequest) (*PutFileOKReply, error)
+	GetMetadata(context.Context, *GetMetadataRequest) (*GetMetadataReply, error)
 	mustEmbedUnimplementedLeaderServerServer()
 }
 
@@ -112,6 +123,9 @@ func (UnimplementedLeaderServerServer) PutBlockInfo(context.Context, *PutBlockIn
 }
 func (UnimplementedLeaderServerServer) PutFileOK(context.Context, *PutFileOKRequest) (*PutFileOKReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PutFileOK not implemented")
+}
+func (UnimplementedLeaderServerServer) GetMetadata(context.Context, *GetMetadataRequest) (*GetMetadataReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMetadata not implemented")
 }
 func (UnimplementedLeaderServerServer) mustEmbedUnimplementedLeaderServerServer() {}
 
@@ -216,6 +230,24 @@ func _LeaderServer_PutFileOK_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _LeaderServer_GetMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMetadataRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LeaderServerServer).GetMetadata(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/leaderserver.LeaderServer/GetMetadata",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LeaderServerServer).GetMetadata(ctx, req.(*GetMetadataRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // LeaderServer_ServiceDesc is the grpc.ServiceDesc for LeaderServer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -242,6 +274,10 @@ var LeaderServer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PutFileOK",
 			Handler:    _LeaderServer_PutFileOK_Handler,
+		},
+		{
+			MethodName: "GetMetadata",
+			Handler:    _LeaderServer_GetMetadata_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

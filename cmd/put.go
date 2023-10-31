@@ -7,10 +7,12 @@ import (
 )
 
 var putCmd = &cobra.Command{
-	Use:   "put",
-	Short: "put file from SDFS",
-	Long:  `put file from SDFS`,
-	Run:   put,
+	Use:     "put [localfilename] [sdfsfilename]",
+	Short:   "put file from SDFS",
+	Long:    `put file from SDFS`,
+	Example: `  sdfs put local_test sdfs_test`,
+	Args:    cobra.ExactArgs(2),
+	Run:     put,
 }
 
 func put(cmd *cobra.Command, args []string) {
@@ -18,7 +20,7 @@ func put(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	err = client.PutFile("test_combine", "test")
+	err = client.PutFile(args[0], args[1])
 	if err != nil {
 		logrus.Fatal(err)
 	}

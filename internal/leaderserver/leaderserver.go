@@ -80,11 +80,37 @@ func (l *LeaderServer) getLeader() (string, error) {
 	return l.leader, nil
 }
 
+// GetMetadata returns the metadata to the client through gRPC.
+func (l *LeaderServer) GetMetadata(ctx context.Context, in *pb.GetMetadataRequest) (*pb.GetMetadataReply, error) {
+	metadata := l.getMetadata()
+	getMetadaReply := &pb.GetMetadataReply{
+		FileInfo: map[string]*pb.BlockInfo{},
+	}
+	for fileName, blockInfo := range metadata.FileInfo {
+		getMetadaReply.FileInfo[fileName] = &pb.BlockInfo{
+			BlockInfo: map[int64]*pb.BlockMeta{},
+		}
+		for blockID, blockMeta := range blockInfo {
+			getMetadaReply.FileInfo[fileName].BlockInfo[blockID] = &pb.BlockMeta{
+				HostNames: blockMeta.HostNames,
+				FileName:  blockMeta.FileName,
+				BlockID:   blockMeta.BlockID,
+			}
+		}
+	}
+	return getMetadaReply, nil
+}
+
+// getMetadata returns the metadata.
+func (l *LeaderServer) getMetadata() *metadata.Metadata {
+	return l.metadata
+}
+
 func (l *LeaderServer) SetLeader(leader string) {
 	l.leader = leader
 }
 
-// TODO: Elect Leader, Put file, get file, del file
+// TODO: Elect Leader, del file
 
 func (l *LeaderServer) acquireFileSemaphore(fileName string, weight int64) error {
 	if _, ok := l.fileSemaphore[fileName]; !ok {

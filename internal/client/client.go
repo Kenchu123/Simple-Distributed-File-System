@@ -7,6 +7,7 @@ import (
 
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/config"
 	leaderServerProto "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/proto"
+	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/metadata"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -49,13 +50,37 @@ func (c *Client) getLeader() (string, error) {
 	return r.GetLeader(), nil
 }
 
-func (c *Client) DeleteFile(sdfsfilename string) error {
-	// get leader, ask leader where the file is stored, delete the file from the data server
-	return nil
+func (c *Client) getMetadata(leader string) (*metadata.Metadata, error) {
+	conn, err := grpc.Dial(leader+":"+c.leaderServerPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("cannot connect to %s leaderServer: %v", leader, err)
+	}
+	defer conn.Close()
+
+	client := leaderServerProto.NewLeaderServerClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	r, err := client.GetMetadata(ctx, &leaderServerProto.GetMetadataRequest{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get metadata: %v", err)
+	}
+
+	newMetadata := metadata.NewMetadata()
+	for fileName, blockInfo := range r.GetFileInfo() {
+		newMetadata.FileInfo[fileName] = metadata.BlockInfo{}
+		for blockID, blockMeta := range blockInfo.GetBlockInfo() {
+			newMetadata.FileInfo[fileName][blockID] = metadata.BlockMeta{
+				HostNames: blockMeta.HostNames,
+				FileName:  blockMeta.FileName,
+				BlockID:   blockMeta.BlockID,
+			}
+		}
+	}
+	return newMetadata, nil
 }
 
-func (c *Client) LsFile(sdfsfilename string) error {
-	// TODO: print to console
+func (c *Client) DeleteFile(sdfsfilename string) error {
+	// get leader, ask leader where the file is stored, delete the file from the data server
 	return nil
 }
 
