@@ -83,8 +83,3 @@ func (c *Client) DeleteFile(sdfsfilename string) error {
 	// get leader, ask leader where the file is stored, delete the file from the data server
 	return nil
 }
-
-func (c *Client) Store() error {
-	// TODO: print to console
-	return nil
-}

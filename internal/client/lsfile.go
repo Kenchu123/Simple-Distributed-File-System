@@ -6,8 +6,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// LsFile list all machine (VM) addresses where this file is currently being stored
 func (c *Client) LsFile(sdfsfilename string) (string, error) {
-	// get leader
 	leader, err := c.getLeader()
 	if err != nil {
 		return "", err
