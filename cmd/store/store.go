@@ -5,7 +5,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/client"
+	client "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/sdfsclient"
 )
 
 var configPath string

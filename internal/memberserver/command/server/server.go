@@ -41,15 +41,11 @@ func New(configPath, port string) (*Server, error) {
 
 // NewMemberServer creates a new server
 func NewMemberServer(port string) *Server {
-	hostName, err := os.Hostname()
+	server, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		logrus.Fatalf("failed to get hostname: %v", err)
+		logrus.Fatalf("failed to listen on port %s: %v\n", port, err)
 	}
-	server, err := net.Listen("tcp", hostName+":"+port)
-	if err != nil {
-		logrus.Fatalf("failed to listen on %s:%s: %v", hostName, port, err)
-	}
-	logrus.Infof("Listening on %s:%s", hostName, port)
+	logrus.Infof("MemberServer listening on port %s", port)
 	return &Server{
 		server: server,
 	}

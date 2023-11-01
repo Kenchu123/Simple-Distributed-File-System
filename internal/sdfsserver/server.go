@@ -11,8 +11,8 @@ import (
 
 // SDFSServer handles file operations to SDFS.
 type SDFSServer struct {
-	*leaderserver.LeaderServer
-	*dataserver.DataServer
+	LeaderServer *leaderserver.LeaderServer
+	DataServer   *dataserver.DataServer
 	Memberserver *memberserver.Server
 }
 
