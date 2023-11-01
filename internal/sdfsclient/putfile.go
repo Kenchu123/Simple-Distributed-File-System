@@ -11,6 +11,7 @@ import (
 	dataServerProto "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/dataserver/proto"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/metadata"
 	leaderServerProto "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/proto"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -37,13 +38,14 @@ func (c *Client) PutFile(localfilename, sdfsfilename string) error {
 	logrus.Infof("Leader is %s", leader)
 
 	blockInfo, err := c.putBlockInfo(leader, sdfsfilename, fileInfo.Size())
+	defer c.putFileOK(leader, sdfsfilename, blockInfo)
 	if err != nil {
 		return err
 	}
 	logrus.Infof("Got blockInfo %+v", blockInfo)
 
-	// TODO: handle fault tolerant and performance
-	for i := 0; i < len(blockInfo); i++ {
+	eg, _ := errgroup.WithContext(context.Background())
+	for i := int64(0); i < int64(len(blockInfo)); i++ {
 		// read a block from localfile
 		block := make([]byte, c.blockSize)
 		n, err := localfile.Read(block)
@@ -54,21 +56,24 @@ func (c *Client) PutFile(localfilename, sdfsfilename string) error {
 			return fmt.Errorf("cannot read local file %s: %v", localfilename, err)
 		}
 		logrus.Infof("Read block %d of file %s with size %d", i, localfilename, n)
-		// send the block to the data server
-		for _, hostname := range blockInfo[int64(i)].HostNames {
-			_, err := c.putFileBlock(hostname, sdfsfilename, int64(i), block[:n])
-			if err != nil {
-				return fmt.Errorf("cannot put file block %d of file %s to data server %s: %v", i, sdfsfilename, hostname, err)
-			}
-			logrus.Infof("Put block %d of file %s to data server %s", i, sdfsfilename, hostname)
+		for _, hostname := range blockInfo[i].HostNames {
+			// send the block to the data server
+			func(hostname, sdfsfilename string, blockID int64, block []byte) {
+				eg.Go(func() error {
+					_, err := c.putFileBlock(hostname, sdfsfilename, blockID, block)
+					if err != nil {
+						return fmt.Errorf("Failed to put block %d of file %s to data server %s with error %w", blockID, sdfsfilename, hostname, err)
+					}
+					logrus.Infof("Put block %d of file %s to data server %s", blockID, sdfsfilename, hostname)
+					return nil
+				})
+			}(hostname, sdfsfilename, i, block[:n])
 		}
 	}
-
-	err = c.putFileOK(leader, sdfsfilename, blockInfo)
-	if err != nil {
-		return fmt.Errorf("cannot put file ok of file %s to leader server %s: %v", sdfsfilename, leader, err)
+	if err := eg.Wait(); err != nil {
+		return fmt.Errorf("Failed to put file %s to SDFS with error %w", sdfsfilename, err)
 	}
-	logrus.Infof("Put file ok of file %s to leader server %s", sdfsfilename, leader)
+	logrus.Infof("Put all blocks of file %s to SDFS", sdfsfilename)
 	return nil
 }
 

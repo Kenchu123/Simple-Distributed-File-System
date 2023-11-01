@@ -18,6 +18,7 @@ type Config struct {
 	MemberServerPort string        `yaml:"member_server_port"`
 	BlocksDir        string        `yaml:"blocks_dir"`
 	BlockSize        int64         `yaml:"block_size"`
+	RelicationFactor int           `yaml:"replication_factor"`
 	Heartbeat        Heartbeat     `yaml:"heartbeat"`
 	FailureDetect    FailureDetect `yaml:"failure_detect"`
 	Cleanup          Cleanup       `yaml:"cleanup"`

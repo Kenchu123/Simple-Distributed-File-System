@@ -312,3 +312,16 @@ func Deserialize(b []byte) (*Membership, error) {
 	}
 	return members, nil
 }
+
+// Get alive members in the membership list
+func (m *Membership) GetAliveMembers() map[string]*Member {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	members := map[string]*Member{}
+	for id, member := range m.Members {
+		if member.State == ALIVE {
+			members[id] = member
+		}
+	}
+	return members
+}

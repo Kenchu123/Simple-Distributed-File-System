@@ -22,7 +22,7 @@ func NewServer(configPath string) (*SDFSServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	leaderServer := leaderserver.NewLeaderServer(config.LeaderServerPort)
+	leaderServer := leaderserver.NewLeaderServer(config.LeaderServerPort, config.BlockSize, config.RelicationFactor)
 	dataServer := dataserver.NewDataServer(config.DataServerPort, config.BlocksDir)
 	memberServer := memberserver.NewMemberServer(config.MemberServerPort)
 	return &SDFSServer{

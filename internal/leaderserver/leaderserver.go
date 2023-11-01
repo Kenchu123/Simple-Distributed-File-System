@@ -14,38 +14,24 @@ import (
 
 // LeaderServer handles file operations permission and Leader election.
 type LeaderServer struct {
-	port          string
-	leader        string
-	metadata      *metadata.Metadata
-	fileSemaphore map[string]*semaphore.Weighted
-
+	port              string
+	leader            string
+	metadata          *metadata.Metadata
+	fileSemaphore     map[string]*semaphore.Weighted
+	blockSize         int64
+	replicationFactor int
 	pb.UnimplementedLeaderServerServer
 }
 
 // NewLeader creates a new Leader.
-func NewLeaderServer(port string) *LeaderServer {
+func NewLeaderServer(port string, blockSize int64, replicationFactor int) *LeaderServer {
 	return &LeaderServer{
-		port:   port,
-		leader: "localhost", // TODO: find the right leader
-		metadata: &metadata.Metadata{
-			FileInfo: map[string]metadata.BlockInfo{
-				"test": {
-					0: {
-						HostNames: []string{"localhost"},
-						FileName:  "test",
-						BlockID:   0,
-					},
-					1: {
-						HostNames: []string{"localhost"},
-						FileName:  "test",
-						BlockID:   1,
-					},
-				},
-			},
-		},
-		fileSemaphore: map[string]*semaphore.Weighted{
-			"test": semaphore.NewWeighted(2),
-		},
+		port:              port,
+		leader:            "fa23-cs425-8701.cs.illinois.edu", // TODO: find the right leader
+		metadata:          metadata.NewMetadata(),
+		fileSemaphore:     map[string]*semaphore.Weighted{},
+		blockSize:         blockSize,
+		replicationFactor: replicationFactor,
 	}
 }
 

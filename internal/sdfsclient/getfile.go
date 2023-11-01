@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -28,29 +29,44 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 	// get blockInfo from leader
 	// TODO: handle waiting timeout in the getBlockInfo
 	blockInfo, err := c.getBlockInfo(leader, sdfsfilename)
+	defer c.getFileOK(leader, sdfsfilename)
 	if err != nil {
 		return err
 	}
 	logrus.Infof("Got blockInfo %+v", blockInfo)
 
 	// get file blocks from data servers
+	mu := sync.Mutex{}
 	blocks := map[int64]dataserver.DataBlock{}
+	// get the block file from multiple servers concurrently
+	var wg sync.WaitGroup
 	for _, blockMeta := range blockInfo {
-		// TODO: get from multiple data servers
-		// TODO: error handling
-		logrus.Infof("Getting block %d of file %s from data server %s", blockMeta.BlockID, blockMeta.FileName, blockMeta.HostNames[0])
-		data, err := c.getFileBlock(blockMeta.HostNames[0], blockMeta.FileName, blockMeta.BlockID)
-		if err != nil {
-			return err
-		}
-		logrus.Infof("Got block %d of file %s from data server %s", blockMeta.BlockID, blockMeta.FileName, blockMeta.HostNames[0])
-		blocks[blockMeta.BlockID] = dataserver.DataBlock{
-			BlockID: blockMeta.BlockID,
-			Data:    data,
-		}
+		wg.Add(1)
+		go func(blockMeta metadata.BlockMeta) {
+			defer wg.Done()
+			for _, hostName := range blockMeta.HostNames {
+				wg.Add(1)
+				go func(blockMeta metadata.BlockMeta, hostName string) {
+					defer wg.Done()
+					logrus.Infof("Getting block %d of file %s from data server %s", blockMeta.BlockID, blockMeta.FileName, hostName)
+					data, err := c.getFileBlock(hostName, blockMeta.FileName, blockMeta.BlockID)
+					if err != nil {
+						logrus.Infof("Failed to get block %d of file %s from data server %s", blockMeta.BlockID, blockMeta.FileName, hostName)
+						return
+					}
+					logrus.Infof("Got block %d of file %s from data server %s", blockMeta.BlockID, blockMeta.FileName, hostName)
+					mu.Lock()
+					defer mu.Unlock()
+					blocks[blockMeta.BlockID] = dataserver.DataBlock{
+						BlockID: blockMeta.BlockID,
+						Data:    data,
+					}
+				}(blockMeta, hostName)
+			}
+		}(blockMeta)
 	}
+	wg.Wait()
 	logrus.Infof("Got all blocks of file %s from SDFS", sdfsfilename)
-
 	buffers := make([]byte, 0)
 	for i := 0; i < len(blockInfo); i++ {
 		if _, ok := blocks[int64(i)]; !ok {
@@ -58,7 +74,6 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 		}
 		buffers = append(buffers, blocks[int64(i)].Data...)
 	}
-	logrus.Infof("Combined all blocks of file %s", sdfsfilename)
 
 	logrus.Infof("Writing file %s to local file %s", sdfsfilename, localfilename)
 	err = os.WriteFile(localfilename, buffers, 0644)
@@ -66,13 +81,6 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 		return fmt.Errorf("failed to write file %s: %v", localfilename, err)
 	}
 	logrus.Infof("Wrote file %s to local file %s", sdfsfilename, localfilename)
-
-	err = c.getFileOK(leader, sdfsfilename)
-	if err != nil {
-		return err
-	}
-	logrus.Infof("Got file OK from leader")
-
 	return nil
 }
 
@@ -132,7 +140,7 @@ func (c *Client) getFileBlock(hostname, filename string, blockID int64) ([]byte,
 		}
 		chunk := req.GetChunk()
 		fileSize += int64(len(chunk))
-		logrus.Infof("received a chunk with size %v", len(chunk))
+		logrus.Debugf("received a chunk with size %v", len(chunk))
 		buffer = append(buffer, chunk...)
 	}
 	return buffer, nil
