@@ -1,4 +1,4 @@
-package cmd
+package store
 
 import (
 	"fmt"
@@ -7,6 +7,8 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/client"
 )
+
+var configPath string
 
 var storeCmd = &cobra.Command{
 	Use:     "store",
@@ -28,5 +30,10 @@ func store(cmd *cobra.Command, args []string) {
 	fmt.Printf("files stored at this machine:\n%s\n", re)
 }
 
+func New() *cobra.Command {
+	return storeCmd
+}
+
 func init() {
+	storeCmd.PersistentFlags().StringVarP(&configPath, "config", "c", ".sdfs/config.yml", "path to config file")
 }

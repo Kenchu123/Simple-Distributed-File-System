@@ -1,4 +1,4 @@
-package cmd
+package metadata
 
 import (
 	"fmt"
@@ -7,6 +7,8 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/client"
 )
+
+var configPath string
 
 var metadataCmd = &cobra.Command{
 	Use:     "metadata",
@@ -28,5 +30,10 @@ func metadata(cmd *cobra.Command, args []string) {
 	fmt.Printf("files stored at this machine:\n%s\n", re)
 }
 
+func New() *cobra.Command {
+	return metadataCmd
+}
+
 func init() {
+	metadataCmd.PersistentFlags().StringVarP(&configPath, "config", "c", ".sdfs/config.yml", "path to config file")
 }

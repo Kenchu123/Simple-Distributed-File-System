@@ -1,10 +1,12 @@
-package cmd
+package delete
 
 import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/client"
 )
+
+var configPath string
 
 var deleteCmd = &cobra.Command{
 	Use:     "delete sdfsfilename",
@@ -26,5 +28,10 @@ func delete(cmd *cobra.Command, args []string) {
 	}
 }
 
+func New() *cobra.Command {
+	return deleteCmd
+}
+
 func init() {
+	deleteCmd.PersistentFlags().StringVarP(&configPath, "config", "c", ".sdfs/config.yml", "path to config file")
 }

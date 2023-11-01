@@ -6,8 +6,8 @@ import (
 	"net"
 
 	"github.com/sirupsen/logrus"
+	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/metadata"
 	pb "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/proto"
-	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/metadata"
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc"
 )
@@ -110,7 +110,7 @@ func (l *LeaderServer) SetLeader(leader string) {
 	l.leader = leader
 }
 
-// TODO: Elect Leader, del file
+// TODO: Elect Leader
 
 func (l *LeaderServer) acquireFileSemaphore(fileName string, weight int64) error {
 	if _, ok := l.fileSemaphore[fileName]; !ok {

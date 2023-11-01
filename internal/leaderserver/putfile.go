@@ -3,8 +3,8 @@ package leaderserver
 import (
 	"context"
 
+	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/metadata"
 	pb "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/proto"
-	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/metadata"
 	"golang.org/x/sync/semaphore"
 )
 

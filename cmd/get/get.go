@@ -1,10 +1,12 @@
-package cmd
+package get
 
 import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/client"
 )
+
+var configPath string
 
 var getCmd = &cobra.Command{
 	Use:     "get [sdfsfilename] [localfilename]",
@@ -26,5 +28,10 @@ func get(cmd *cobra.Command, args []string) {
 	}
 }
 
+func New() *cobra.Command {
+	return getCmd
+}
+
 func init() {
+	getCmd.PersistentFlags().StringVarP(&configPath, "config", "c", ".sdfs/config.yml", "path to config file")
 }

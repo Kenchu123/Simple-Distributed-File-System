@@ -21,5 +21,5 @@ func Init(logPath string) {
 		TimestampFormat: "15:04:05",
 		NoColors:        true,
 	})
-	logrus.SetLevel(logrus.DebugLevel)
+	logrus.SetLevel(logrus.InfoLevel)
 }

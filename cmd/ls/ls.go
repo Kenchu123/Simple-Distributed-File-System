@@ -1,4 +1,4 @@
-package cmd
+package ls
 
 import (
 	"fmt"
@@ -7,6 +7,8 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/client"
 )
+
+var configPath string
 
 var lsCmd = &cobra.Command{
 	Use:     "ls [sdfsfilename]",
@@ -29,5 +31,10 @@ func ls(cmd *cobra.Command, args []string) {
 	fmt.Printf("file %s's block location:\n%s\n", args[0], re)
 }
 
+func New() *cobra.Command {
+	return lsCmd
+}
+
 func init() {
+	lsCmd.PersistentFlags().StringVarP(&configPath, "config", "c", ".sdfs/config.yml", "path to config file")
 }

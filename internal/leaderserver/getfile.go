@@ -6,7 +6,7 @@ import (
 
 	pb "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/proto"
 
-	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/metadata"
+	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/metadata"
 )
 
 func (l *LeaderServer) GetBlockInfo(ctx context.Context, in *pb.GetBlockInfoRequest) (*pb.GetBlockInfoReply, error) {

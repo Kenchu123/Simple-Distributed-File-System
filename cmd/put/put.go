@@ -1,10 +1,12 @@
-package cmd
+package put
 
 import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/client"
 )
+
+var configPath string
 
 var putCmd = &cobra.Command{
 	Use:     "put [localfilename] [sdfsfilename]",
@@ -26,5 +28,10 @@ func put(cmd *cobra.Command, args []string) {
 	}
 }
 
+func New() *cobra.Command {
+	return putCmd
+}
+
 func init() {
+	putCmd.PersistentFlags().StringVarP(&configPath, "config", "c", ".sdfs/config.yml", "path to config file")
 }

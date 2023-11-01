@@ -10,7 +10,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 	pb "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/dataserver/proto"
-	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/metadata"
 	"google.golang.org/grpc"
 )
 
@@ -20,7 +19,6 @@ var CHUNK_SIZE = 3 * 1024 * 1024
 type DataServer struct {
 	port      string
 	blocksDir string
-	metaData  *metadata.Metadata
 
 	pb.UnimplementedDataServerServer
 }
@@ -38,7 +36,6 @@ type DataBlock struct {
 // NewDataServer creates a new dataserver.
 func NewDataServer(port, blocksDir string) *DataServer {
 	return &DataServer{
-		metaData:  metadata.NewMetadata(),
 		blocksDir: blocksDir,
 		port:      port,
 	}

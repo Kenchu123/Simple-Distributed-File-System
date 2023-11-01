@@ -1,0 +1,153 @@
+version: "3"
+services:
+  dev:
+    container_name: dev
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: sdfs-dev
+    hostname: dev
+    volumes:
+      - .:/app
+      - /app/bin
+      - /app/logs
+  m1:
+    container_name: dev-m1
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: sdfs-dev
+    hostname: fa23-cs425-8701.cs.illinois.edu
+    volumes:
+      - .:/app
+      - /app/bin
+      - /app/logs
+      - /app/blocks
+      - ./logs/m1:/app/logs
+      - ./blocks/m1:/app/blocks
+  m2:
+    container_name: dev-m2
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: sdfs-dev
+    hostname: fa23-cs425-8702.cs.illinois.edu
+    volumes:
+      - .:/app
+      - /app/bin
+      - /app/logs
+      - /app/blocks
+      - ./logs/m2:/app/logs
+      - ./blocks/m2:/app/blocks
+  m3:
+    container_name: dev-m3
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: sdfs-dev
+    hostname: fa23-cs425-8703.cs.illinois.edu
+    volumes:
+      - .:/app
+      - /app/bin
+      - /app/logs
+      - /app/blocks
+      - ./logs/m3:/app/logs
+      - ./blocks/m3:/app/blocks
+  m4:
+    container_name: dev-m4
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: sdfs-dev
+    hostname: fa23-cs425-8704.cs.illinois.edu
+    volumes:
+      - .:/app
+      - /app/bin
+      - /app/logs
+      - /app/blocks
+      - ./logs/m4:/app/logs
+      - ./blocks/m4:/app/blocks
+  m5:
+    container_name: dev-m5
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: sdfs-dev
+    hostname: fa23-cs425-8705.cs.illinois.edu
+    volumes:
+      - .:/app
+      - /app/bin
+      - /app/logs
+      - /app/blocks
+      - ./logs/m5:/app/logs
+      - ./blocks/m5:/app/blocks
+  m6:
+    container_name: dev-m6
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: sdfs-dev
+    hostname: fa23-cs425-8706.cs.illinois.edu
+    volumes:
+      - .:/app
+      - /app/bin
+      - /app/logs
+      - /app/blocks
+      - ./logs/m6:/app/logs
+      - ./blocks/m6:/app/blocks
+  m7:
+    container_name: dev-m7
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: sdfs-dev
+    hostname: fa23-cs425-8707.cs.illinois.edu
+    volumes:
+      - .:/app
+      - /app/bin
+      - /app/logs
+      - /app/blocks
+      - ./logs/m7:/app/logs
+      - ./blocks/m7:/app/blocks
+  m8:
+    container_name: dev-m8
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: sdfs-dev
+    hostname: fa23-cs425-8708.cs.illinois.edu
+    volumes:
+      - .:/app
+      - /app/bin
+      - /app/logs
+      - /app/blocks
+      - ./logs/m8:/app/logs
+      - ./blocks/m8:/app/blocks
+  m9:
+    container_name: dev-m9
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: sdfs-dev
+    hostname: fa23-cs425-8709.cs.illinois.edu
+    volumes:
+      - .:/app
+      - /app/bin
+      - /app/logs
+      - /app/blocks
+      - ./logs/m9:/app/logs
+      - ./blocks/m9:/app/blocks
+  m10:
+    container_name: dev-m10
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: sdfs-dev
+    hostname: fa23-cs425-8710.cs.illinois.edu
+    volumes:
+      - .:/app
+      - /app/bin
+      - /app/logs
+      - /app/blocks
+      - ./logs/m10:/app/logs
+      - ./blocks/m10:/app/blocks
