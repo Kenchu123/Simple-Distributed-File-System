@@ -22,5 +22,5 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&logPath, "log", "l", "logs/sdfs.log", "path to log file")
 	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", ".sdfs/config.yml", "path to config file")
 
-	rootCmd.AddCommand(serveCmd, getCmd, putCmd, lsCmd, storeCmd)
+	rootCmd.AddCommand(serveCmd, getCmd, putCmd, lsCmd, storeCmd, metadataCmd, deleteCmd)
 }

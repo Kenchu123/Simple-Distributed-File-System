@@ -79,7 +79,14 @@ func (c *Client) getMetadata(leader string) (*metadata.Metadata, error) {
 	return newMetadata, nil
 }
 
-func (c *Client) DeleteFile(sdfsfilename string) error {
-	// get leader, ask leader where the file is stored, delete the file from the data server
-	return nil
+func (c *Client) GetMetadata() (string, error) {
+	leader, err := c.getLeader()
+	if err != nil {
+		return "", err
+	}
+	metadata, err := c.getMetadata(leader)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%+v", metadata), nil
 }

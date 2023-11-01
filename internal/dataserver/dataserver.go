@@ -1,8 +1,8 @@
 package dataserver
 
 import (
-	"context"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -13,6 +13,8 @@ import (
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/metadata"
 	"google.golang.org/grpc"
 )
+
+var CHUNK_SIZE = 3 * 1024 * 1024
 
 // DataServer handle data blocks and metadata.
 type DataServer struct {
@@ -59,69 +61,72 @@ func (ds *DataServer) Run() {
 	}
 }
 
-// GetFileBlock gets a file block of a file and returns it to the client through gRPC.
-// func (ds *DataServer) GetFileBlock(ctx context.Context, in *pb.GetFileBlockRequest) (*pb.GetFileBlockReply, error) {
-// 	fileName := in.GetFileName()
-// 	blockID := in.GetBlockID()
-// 	dataBlock, err := ds.getFileBlock(fileName, blockID)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	reply := &pb.GetFileBlockReply{
-// 		Data: dataBlock.Data,
-// 	}
-// 	return reply, nil
-// }
-
-// func (ds *DataServer) getFileBlock(fileName string, blockID int64) (*DataBlock, error) {
-// 	// get fileBlock from metadata using filename and blockID
-// 	// read data from filepath
-// 	// return dataBlock
-// 	filePath := filepath.Join(ds.blocksDir, fileName+"_"+strconv.Itoa(int(blockID)))
-// 	data, err := os.ReadFile(filePath)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to read file %s: %v", filePath, err)
-// 	}
-// 	return &DataBlock{blockID, data}, nil
-// }
-
-func (ds *DataServer) GetFileBlock(ctx context.Context, in *pb.GetFileBlockRequest) (*pb.GetFileBlockReply, error) {
+func (ds *DataServer) GetFileBlock(in *pb.GetFileBlockRequest, stream pb.DataServer_GetFileBlockServer) error {
 	fileName := in.GetFileName()
 	blockID := in.GetBlockID()
-	dataBlock, err := ds.getFileBlock(fileName, blockID)
+	file, err := ds.getFileBlock(fileName, blockID)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	reply := &pb.GetFileBlockReply{
-		Data: dataBlock.Data,
+	buf := make([]byte, CHUNK_SIZE)
+	fileSize := 0
+	for {
+		num, err := file.Read(buf)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		chunk := buf[:num]
+		if err := stream.Send(&pb.GetFileBlockReply{Chunk: chunk}); err != nil {
+			return err
+		}
+		fileSize += len(chunk)
+		logrus.Debugf("sent a chunk with size %v", len(chunk))
 	}
-	return reply, nil
+	logrus.Debugf("sent file %s block %d with size %d", fileName, blockID, fileSize)
+	return nil
 }
 
-func (ds *DataServer) getFileBlock(fileName string, blockID int64) (*DataBlock, error) {
+func (ds *DataServer) getFileBlock(fileName string, blockID int64) (*os.File, error) {
 	// get fileBlock from metadata using filename and blockID
 	// read data from filepath
 	// return dataBlock
 	filePath := filepath.Join(ds.blocksDir, fileName+"_"+strconv.Itoa(int(blockID)))
-	data, err := os.ReadFile(filePath)
+	file, err := os.Open(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read file %s: %v", filePath, err)
+		return nil, fmt.Errorf("failed to open file %s: %v", filePath, err)
 	}
-	return &DataBlock{blockID, data}, nil
+	return file, nil
 }
 
-func (ds *DataServer) PutFileBlock(ctx context.Context, in *pb.PutFileBlockRequest) (*pb.PutFileBlockReply, error) {
-	fileName := in.GetFileName()
-	blockID := in.GetBlockID()
-	data := in.GetData()
-	err := ds.putFileBlock(fileName, blockID, data)
+func (ds *DataServer) PutFileBlock(stream pb.DataServer_PutFileBlockServer) error {
+	var fileName string
+	var blockID int64
+	buffer := make([]byte, 0)
+	var fileSize int64 = 0
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("failed to receive chunk from server: %v", err)
+		}
+		fileName = req.GetFileName()
+		blockID = req.GetBlockID()
+		chunk := req.GetChunk()
+		fileSize += int64(len(chunk))
+		logrus.Debugf("received a chunk with size %v", len(chunk))
+		buffer = append(buffer, chunk...)
+	}
+	logrus.Debugf("received file %s block %d with size %d", fileName, blockID, fileSize)
+	err := ds.putFileBlock(fileName, blockID, buffer)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	reply := &pb.PutFileBlockReply{
-		Ok: true,
-	}
-	return reply, nil
+	return stream.SendAndClose(&pb.PutFileBlockReply{Ok: true})
 }
 
 func (ds *DataServer) putFileBlock(fileName string, blockID int64, data []byte) error {

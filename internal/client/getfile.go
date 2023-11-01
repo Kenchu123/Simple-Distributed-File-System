@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -115,11 +116,26 @@ func (c *Client) getFileBlock(hostname, filename string, blockID int64) ([]byte,
 	client := dataServerProto.NewDataServerClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, err := client.GetFileBlock(ctx, &dataServerProto.GetFileBlockRequest{FileName: filename, BlockID: blockID})
+	stream, err := client.GetFileBlock(ctx, &dataServerProto.GetFileBlockRequest{FileName: filename, BlockID: blockID})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get file block of %s: %v", filename, err)
+		return nil, err
 	}
-	return r.GetData(), nil
+	buffer := make([]byte, 0)
+	var fileSize int64 = 0
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to receive chunk from server: %v", err)
+		}
+		chunk := req.GetChunk()
+		fileSize += int64(len(chunk))
+		logrus.Infof("received a chunk with size %v", len(chunk))
+		buffer = append(buffer, chunk...)
+	}
+	return buffer, nil
 }
 
 // getFileOK tells the leader server that the client has got the file.

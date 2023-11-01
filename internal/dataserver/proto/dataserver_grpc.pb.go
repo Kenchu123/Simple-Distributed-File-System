@@ -22,9 +22,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DataServerClient interface {
-	GetFileBlock(ctx context.Context, in *GetFileBlockRequest, opts ...grpc.CallOption) (*GetFileBlockReply, error)
-	GetFileBlocks(ctx context.Context, in *GetFileBlocksRequest, opts ...grpc.CallOption) (*GetFileBlocksReply, error)
-	PutFileBlock(ctx context.Context, in *PutFileBlockRequest, opts ...grpc.CallOption) (*PutFileBlockReply, error)
+	GetFileBlock(ctx context.Context, in *GetFileBlockRequest, opts ...grpc.CallOption) (DataServer_GetFileBlockClient, error)
+	PutFileBlock(ctx context.Context, opts ...grpc.CallOption) (DataServer_PutFileBlockClient, error)
 }
 
 type dataServerClient struct {
@@ -35,40 +34,78 @@ func NewDataServerClient(cc grpc.ClientConnInterface) DataServerClient {
 	return &dataServerClient{cc}
 }
 
-func (c *dataServerClient) GetFileBlock(ctx context.Context, in *GetFileBlockRequest, opts ...grpc.CallOption) (*GetFileBlockReply, error) {
-	out := new(GetFileBlockReply)
-	err := c.cc.Invoke(ctx, "/dataserver.DataServer/GetFileBlock", in, out, opts...)
+func (c *dataServerClient) GetFileBlock(ctx context.Context, in *GetFileBlockRequest, opts ...grpc.CallOption) (DataServer_GetFileBlockClient, error) {
+	stream, err := c.cc.NewStream(ctx, &DataServer_ServiceDesc.Streams[0], "/dataserver.DataServer/GetFileBlock", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &dataServerGetFileBlockClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
 }
 
-func (c *dataServerClient) GetFileBlocks(ctx context.Context, in *GetFileBlocksRequest, opts ...grpc.CallOption) (*GetFileBlocksReply, error) {
-	out := new(GetFileBlocksReply)
-	err := c.cc.Invoke(ctx, "/dataserver.DataServer/GetFileBlocks", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
+type DataServer_GetFileBlockClient interface {
+	Recv() (*GetFileBlockReply, error)
+	grpc.ClientStream
 }
 
-func (c *dataServerClient) PutFileBlock(ctx context.Context, in *PutFileBlockRequest, opts ...grpc.CallOption) (*PutFileBlockReply, error) {
-	out := new(PutFileBlockReply)
-	err := c.cc.Invoke(ctx, "/dataserver.DataServer/PutFileBlock", in, out, opts...)
+type dataServerGetFileBlockClient struct {
+	grpc.ClientStream
+}
+
+func (x *dataServerGetFileBlockClient) Recv() (*GetFileBlockReply, error) {
+	m := new(GetFileBlockReply)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *dataServerClient) PutFileBlock(ctx context.Context, opts ...grpc.CallOption) (DataServer_PutFileBlockClient, error) {
+	stream, err := c.cc.NewStream(ctx, &DataServer_ServiceDesc.Streams[1], "/dataserver.DataServer/PutFileBlock", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &dataServerPutFileBlockClient{stream}
+	return x, nil
+}
+
+type DataServer_PutFileBlockClient interface {
+	Send(*PutFileBlockRequest) error
+	CloseAndRecv() (*PutFileBlockReply, error)
+	grpc.ClientStream
+}
+
+type dataServerPutFileBlockClient struct {
+	grpc.ClientStream
+}
+
+func (x *dataServerPutFileBlockClient) Send(m *PutFileBlockRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *dataServerPutFileBlockClient) CloseAndRecv() (*PutFileBlockReply, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(PutFileBlockReply)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // DataServerServer is the server API for DataServer service.
 // All implementations must embed UnimplementedDataServerServer
 // for forward compatibility
 type DataServerServer interface {
-	GetFileBlock(context.Context, *GetFileBlockRequest) (*GetFileBlockReply, error)
-	GetFileBlocks(context.Context, *GetFileBlocksRequest) (*GetFileBlocksReply, error)
-	PutFileBlock(context.Context, *PutFileBlockRequest) (*PutFileBlockReply, error)
+	GetFileBlock(*GetFileBlockRequest, DataServer_GetFileBlockServer) error
+	PutFileBlock(DataServer_PutFileBlockServer) error
 	mustEmbedUnimplementedDataServerServer()
 }
 
@@ -76,14 +113,11 @@ type DataServerServer interface {
 type UnimplementedDataServerServer struct {
 }
 
-func (UnimplementedDataServerServer) GetFileBlock(context.Context, *GetFileBlockRequest) (*GetFileBlockReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetFileBlock not implemented")
+func (UnimplementedDataServerServer) GetFileBlock(*GetFileBlockRequest, DataServer_GetFileBlockServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetFileBlock not implemented")
 }
-func (UnimplementedDataServerServer) GetFileBlocks(context.Context, *GetFileBlocksRequest) (*GetFileBlocksReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetFileBlocks not implemented")
-}
-func (UnimplementedDataServerServer) PutFileBlock(context.Context, *PutFileBlockRequest) (*PutFileBlockReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PutFileBlock not implemented")
+func (UnimplementedDataServerServer) PutFileBlock(DataServer_PutFileBlockServer) error {
+	return status.Errorf(codes.Unimplemented, "method PutFileBlock not implemented")
 }
 func (UnimplementedDataServerServer) mustEmbedUnimplementedDataServerServer() {}
 
@@ -98,58 +132,51 @@ func RegisterDataServerServer(s grpc.ServiceRegistrar, srv DataServerServer) {
 	s.RegisterService(&DataServer_ServiceDesc, srv)
 }
 
-func _DataServer_GetFileBlock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetFileBlockRequest)
-	if err := dec(in); err != nil {
-		return nil, err
+func _DataServer_GetFileBlock_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GetFileBlockRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(DataServerServer).GetFileBlock(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/dataserver.DataServer/GetFileBlock",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DataServerServer).GetFileBlock(ctx, req.(*GetFileBlockRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(DataServerServer).GetFileBlock(m, &dataServerGetFileBlockServer{stream})
 }
 
-func _DataServer_GetFileBlocks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetFileBlocksRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DataServerServer).GetFileBlocks(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/dataserver.DataServer/GetFileBlocks",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DataServerServer).GetFileBlocks(ctx, req.(*GetFileBlocksRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+type DataServer_GetFileBlockServer interface {
+	Send(*GetFileBlockReply) error
+	grpc.ServerStream
 }
 
-func _DataServer_PutFileBlock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PutFileBlockRequest)
-	if err := dec(in); err != nil {
+type dataServerGetFileBlockServer struct {
+	grpc.ServerStream
+}
+
+func (x *dataServerGetFileBlockServer) Send(m *GetFileBlockReply) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _DataServer_PutFileBlock_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(DataServerServer).PutFileBlock(&dataServerPutFileBlockServer{stream})
+}
+
+type DataServer_PutFileBlockServer interface {
+	SendAndClose(*PutFileBlockReply) error
+	Recv() (*PutFileBlockRequest, error)
+	grpc.ServerStream
+}
+
+type dataServerPutFileBlockServer struct {
+	grpc.ServerStream
+}
+
+func (x *dataServerPutFileBlockServer) SendAndClose(m *PutFileBlockReply) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *dataServerPutFileBlockServer) Recv() (*PutFileBlockRequest, error) {
+	m := new(PutFileBlockRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
-	if interceptor == nil {
-		return srv.(DataServerServer).PutFileBlock(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/dataserver.DataServer/PutFileBlock",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DataServerServer).PutFileBlock(ctx, req.(*PutFileBlockRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return m, nil
 }
 
 // DataServer_ServiceDesc is the grpc.ServiceDesc for DataServer service.
@@ -158,20 +185,18 @@ func _DataServer_PutFileBlock_Handler(srv interface{}, ctx context.Context, dec 
 var DataServer_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "dataserver.DataServer",
 	HandlerType: (*DataServerServer)(nil),
-	Methods: []grpc.MethodDesc{
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "GetFileBlock",
-			Handler:    _DataServer_GetFileBlock_Handler,
+			StreamName:    "GetFileBlock",
+			Handler:       _DataServer_GetFileBlock_Handler,
+			ServerStreams: true,
 		},
 		{
-			MethodName: "GetFileBlocks",
-			Handler:    _DataServer_GetFileBlocks_Handler,
-		},
-		{
-			MethodName: "PutFileBlock",
-			Handler:    _DataServer_PutFileBlock_Handler,
+			StreamName:    "PutFileBlock",
+			Handler:       _DataServer_PutFileBlock_Handler,
+			ClientStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "dataserver.proto",
 }

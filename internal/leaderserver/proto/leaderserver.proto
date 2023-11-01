@@ -10,6 +10,7 @@ service LeaderServer {
     rpc GetFileOK(GetFileOKRequest) returns (GetFileOKReply) {}
     rpc PutBlockInfo(PutBlockInfoRequest) returns (PutBlockInfoReply) {}
     rpc PutFileOK(PutFileOKRequest) returns (PutFileOKReply) {}
+    rpc DelFile(DelFileRequest) returns (DelFileReply) {}
     rpc GetMetadata(GetMetadataRequest) returns (GetMetadataReply) {}
 }
 
@@ -58,6 +59,12 @@ message PutFileOKRequest {
 }
 
 message PutFileOKReply {}
+
+message DelFileRequest {
+    string fileName = 1;
+}
+
+message DelFileReply {}
 
 message GetMetadataRequest {}
 

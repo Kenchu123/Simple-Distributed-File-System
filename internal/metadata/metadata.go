@@ -29,18 +29,6 @@ func (m *Metadata) IsFileExist(fileName string) bool {
 	return ok
 }
 
-// AddFileBlock adds a file block to metadata.
-func (m *Metadata) AddFileBlock(hostname, fileName string, blockID int64) {
-	if _, ok := m.FileInfo[fileName]; !ok {
-		m.FileInfo[fileName] = make(map[int64]BlockMeta)
-	}
-	m.FileInfo[fileName][int64(blockID)] = BlockMeta{
-		HostNames: append(m.FileInfo[fileName][int64(blockID)].HostNames, hostname),
-		FileName:  fileName,
-		BlockID:   blockID,
-	}
-}
-
 // AddOrUpdateFile adds or updates a file to metadata.
 func (m *Metadata) AddOrUpdateFile(fileName string, blockInfo BlockInfo) {
 	m.FileInfo[fileName] = blockInfo
@@ -62,4 +50,8 @@ func (m *Metadata) GetBlockMeta(fileName string, blockID int64) (BlockMeta, erro
 		return BlockMeta{}, fmt.Errorf("block %d of file %s not found", blockID, fileName)
 	}
 	return blockInfo[blockID], nil
+}
+
+func (m *Metadata) DelFile(fileName string) {
+	delete(m.FileInfo, fileName)
 }

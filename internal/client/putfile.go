@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -13,6 +14,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
+
+var CHUNK_SIZE = 3 * 1024 * 1024
 
 // PutFile sends a file to the SDFS.
 func (c *Client) PutFile(localfilename, sdfsfilename string) error {
@@ -44,6 +47,9 @@ func (c *Client) PutFile(localfilename, sdfsfilename string) error {
 		// read a block from localfile
 		block := make([]byte, c.blockSize)
 		n, err := localfile.Read(block)
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
 			return fmt.Errorf("cannot read local file %s: %v", localfilename, err)
 		}
@@ -107,15 +113,32 @@ func (c *Client) putFileBlock(hostname, fileName string, blockID int64, data []b
 	client := dataServerProto.NewDataServerClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, err := client.PutFileBlock(ctx, &dataServerProto.PutFileBlockRequest{
-		FileName: fileName,
-		BlockID:  blockID,
-		Data:     data,
-	})
+	stream, err := client.PutFileBlock(ctx)
 	if err != nil {
-		return false, fmt.Errorf("failed to put file block of %s: %v", fileName, err)
+		return false, err
 	}
-	return r.GetOk(), nil
+	var fileSize int64 = 0
+	for {
+		if len(data) == 0 {
+			break
+		}
+		chunk := []byte(data)
+		if len(chunk) > CHUNK_SIZE {
+			chunk = chunk[:CHUNK_SIZE]
+		}
+		if err := stream.Send(&dataServerProto.PutFileBlockRequest{
+			FileName: fileName,
+			BlockID:  blockID,
+			Chunk:    chunk,
+		}); err != nil {
+			return false, err
+		}
+		fileSize += int64(len(chunk))
+		data = data[len(chunk):]
+	}
+	r, err := stream.CloseAndRecv()
+	logrus.Debugf("sent file %s block %d with size %d", fileName, blockID, fileSize)
+	return r.GetOk(), err
 }
 
 // putFileOK tells the leader server that the client has put the file.
