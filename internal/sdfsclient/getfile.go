@@ -3,36 +3,18 @@ package client
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/config"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/dataserver"
 	dataServerProto "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/dataserver/proto"
+	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/metadata"
 	leaderServerProto "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/proto"
-	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/metadata"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
-
-// Client handles file operations to SDFS.
-type Client struct {
-	leaderServerPort string
-	dataServerPort   string
-}
-
-// NewClient creates a new Client.
-func NewClient(configPath string) (*Client, error) {
-	config, err := config.NewConfig(configPath)
-	if err != nil {
-		return nil, err
-	}
-	return &Client{
-		leaderServerPort: config.LeaderServerPort,
-		dataServerPort:   config.DataServerPort,
-	}, nil
-}
 
 // GetFile gets a file from SDFS.
 func (c *Client) GetFile(sdfsfilename, localfilename string) error {
@@ -94,24 +76,6 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 	return nil
 }
 
-// getLeader from local leader server through gRPC.
-func (c *Client) getLeader() (string, error) {
-	conn, err := grpc.Dial("localhost:"+c.leaderServerPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return "", fmt.Errorf("cannot connect to %s leaderServer: %v", "localhost", err)
-	}
-	defer conn.Close()
-
-	client := leaderServerProto.NewLeaderServerClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	r, err := client.GetLeader(ctx, &leaderServerProto.GetLeaderRequest{})
-	if err != nil {
-		return "", fmt.Errorf("failed to get leader: %v", err)
-	}
-	return r.GetLeader(), nil
-}
-
 // getBlockInfo gets the block info of a file from the leader server.
 func (c *Client) getBlockInfo(leader, fileName string) (metadata.BlockInfo, error) {
 	conn, err := grpc.Dial(leader+":"+c.leaderServerPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -152,11 +116,26 @@ func (c *Client) getFileBlock(hostname, filename string, blockID int64) ([]byte,
 	client := dataServerProto.NewDataServerClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, err := client.GetFileBlock(ctx, &dataServerProto.GetFileBlockRequest{FileName: filename, BlockID: blockID})
+	stream, err := client.GetFileBlock(ctx, &dataServerProto.GetFileBlockRequest{FileName: filename, BlockID: blockID})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get file block of %s: %v", filename, err)
+		return nil, err
 	}
-	return r.GetData(), nil
+	buffer := make([]byte, 0)
+	var fileSize int64 = 0
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to receive chunk from server: %v", err)
+		}
+		chunk := req.GetChunk()
+		fileSize += int64(len(chunk))
+		logrus.Infof("received a chunk with size %v", len(chunk))
+		buffer = append(buffer, chunk...)
+	}
+	return buffer, nil
 }
 
 // getFileOK tells the leader server that the client has got the file.
@@ -176,25 +155,5 @@ func (c *Client) getFileOK(hostname, fileName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get file OK: %v", err)
 	}
-	return nil
-}
-
-func (c *Client) PutFile(localfilename, sdfsfilename string) error {
-	// get leader, ask leader where to store the file, send the file to the data server
-	return nil
-}
-
-func (c *Client) DeleteFile(sdfsfilename string) error {
-	// get leader, ask leader where the file is stored, delete the file from the data server
-	return nil
-}
-
-func (c *Client) LsFile(sdfsfilename string) error {
-	// TODO: print to console
-	return nil
-}
-
-func (c *Client) Store() error {
-	// TODO: print to console
 	return nil
 }

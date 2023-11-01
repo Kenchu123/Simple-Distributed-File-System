@@ -1,8 +1,8 @@
 package dataserver
 
 import (
-	"context"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -10,15 +10,15 @@ import (
 
 	"github.com/sirupsen/logrus"
 	pb "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/dataserver/proto"
-	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/metadata"
 	"google.golang.org/grpc"
 )
+
+var CHUNK_SIZE = 3 * 1024 * 1024
 
 // DataServer handle data blocks and metadata.
 type DataServer struct {
 	port      string
 	blocksDir string
-	metaData  *metadata.Metadata
 
 	pb.UnimplementedDataServerServer
 }
@@ -36,7 +36,6 @@ type DataBlock struct {
 // NewDataServer creates a new dataserver.
 func NewDataServer(port, blocksDir string) *DataServer {
 	return &DataServer{
-		metaData:  metadata.NewMetadata(),
 		blocksDir: blocksDir,
 		port:      port,
 	}
@@ -59,122 +58,79 @@ func (ds *DataServer) Run() {
 	}
 }
 
-// GetFileBlocks gets all file blocks of a file and returns them to the client through gRPC.
-func (ds *DataServer) GetFileBlocks(ctx context.Context, in *pb.GetFileBlocksRequest) (*pb.GetFileBlocksReply, error) {
-	fileName := in.GetFileName()
-	dataBlocks, err := ds.getFileBlocks(fileName)
-	if err != nil {
-		return nil, err
-	}
-	reply := &pb.GetFileBlocksReply{
-		FileName:   fileName,
-		DataBlocks: []*pb.GetFileBlocksReply_DataBlocks{},
-	}
-	for _, dataBlock := range dataBlocks.dataBlocks {
-		reply.DataBlocks = append(reply.DataBlocks, &pb.GetFileBlocksReply_DataBlocks{
-			BlockID: dataBlock.BlockID,
-			Data:    dataBlock.Data,
-		})
-	}
-	return reply, nil
-}
-
-// getFileBlocks gets all file blocks of a file.
-func (ds *DataServer) getFileBlocks(filename string) (*DataBlocks, error) {
-	// get fileBlocks from metadata using filename
-	// for each fileBlock, read data from filepath
-
-	// TODO: DELETE THIS PART
-	ds.metaData.FileInfo["test"] = map[int64]metadata.BlockMeta{
-		0: {
-			FileName:  "test",
-			BlockID:   0,
-			BlockSize: 10,
-		},
-		1: {
-			FileName:  "test",
-			BlockID:   1,
-			BlockSize: 15,
-		},
-	}
-	blockInfo, err := ds.metaData.GetBlockInfo(filename)
-	if err != nil {
-		return nil, fmt.Errorf("failed to getFileBlocks: %v", err)
-	}
-	dataBlocks := &DataBlocks{fileName: filename}
-	for blockID, blockMeta := range blockInfo {
-		filePath := filepath.Join(ds.blocksDir, filename+"_"+strconv.Itoa(int(blockID)))
-		data, err := os.ReadFile(filePath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read file %s: %v", filePath, err)
-		}
-		dataBlocks.dataBlocks = append(dataBlocks.dataBlocks, DataBlock{blockMeta.BlockID, data})
-	}
-	return dataBlocks, nil
-}
-
-// GetFileBlock gets a file block of a file and returns it to the client through gRPC.
-func (ds *DataServer) GetFileBlock(ctx context.Context, in *pb.GetFileBlockRequest) (*pb.GetFileBlockReply, error) {
-	// TODO: DELETE THIS PART
-	ds.metaData.FileInfo["test"] = map[int64]metadata.BlockMeta{
-		0: {
-			FileName: "test",
-			BlockID:  0,
-		},
-		1: {
-			FileName: "test",
-			BlockID:  1,
-		},
-	}
+func (ds *DataServer) GetFileBlock(in *pb.GetFileBlockRequest, stream pb.DataServer_GetFileBlockServer) error {
 	fileName := in.GetFileName()
 	blockID := in.GetBlockID()
-	dataBlock, err := ds.getFileBlock(fileName, blockID)
+	file, err := ds.getFileBlock(fileName, blockID)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	reply := &pb.GetFileBlockReply{
-		Data: dataBlock.Data,
+	buf := make([]byte, CHUNK_SIZE)
+	fileSize := 0
+	for {
+		num, err := file.Read(buf)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		chunk := buf[:num]
+		if err := stream.Send(&pb.GetFileBlockReply{Chunk: chunk}); err != nil {
+			return err
+		}
+		fileSize += len(chunk)
+		logrus.Debugf("sent a chunk with size %v", len(chunk))
 	}
-	return reply, nil
+	logrus.Debugf("sent file %s block %d with size %d", fileName, blockID, fileSize)
+	return nil
 }
 
-func (ds *DataServer) getFileBlock(fileName string, blockID int64) (*DataBlock, error) {
+func (ds *DataServer) getFileBlock(fileName string, blockID int64) (*os.File, error) {
 	// get fileBlock from metadata using filename and blockID
 	// read data from filepath
 	// return dataBlock
-	blockMeta, err := ds.metaData.GetBlockMeta(fileName, blockID)
+	filePath := filepath.Join(ds.blocksDir, fileName+"_"+strconv.Itoa(int(blockID)))
+	file, err := os.Open(filePath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open file %s: %v", filePath, err)
 	}
-	filePath := filepath.Join(ds.blocksDir, blockMeta.FileName+"_"+strconv.Itoa(int(blockMeta.BlockID)))
-	data, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read file %s: %v", filePath, err)
-	}
-	return &DataBlock{blockMeta.BlockID, data}, nil
+	return file, nil
 }
 
-func (ds *DataServer) PutFileBlock(ctx context.Context, in *pb.PutFileBlockRequest) (*pb.PutFileBlockReply, error) {
-	fileName := in.GetFileName()
-	blockID := in.GetBlockID()
-	blockSize := in.GetBlockSize()
-	data := in.GetData()
-	err := ds.putFileBlock(fileName, int(blockID), int(blockSize), data)
+func (ds *DataServer) PutFileBlock(stream pb.DataServer_PutFileBlockServer) error {
+	var fileName string
+	var blockID int64
+	buffer := make([]byte, 0)
+	var fileSize int64 = 0
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("failed to receive chunk from server: %v", err)
+		}
+		fileName = req.GetFileName()
+		blockID = req.GetBlockID()
+		chunk := req.GetChunk()
+		fileSize += int64(len(chunk))
+		logrus.Debugf("received a chunk with size %v", len(chunk))
+		buffer = append(buffer, chunk...)
+	}
+	logrus.Debugf("received file %s block %d with size %d", fileName, blockID, fileSize)
+	err := ds.putFileBlock(fileName, blockID, buffer)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	reply := &pb.PutFileBlockReply{
-		Ok: true,
-	}
-	return reply, nil
+	return stream.SendAndClose(&pb.PutFileBlockReply{Ok: true})
 }
 
-func (ds *DataServer) putFileBlock(fileName string, blockID int, blockSize int, data []byte) error {
-	filePath := filepath.Join(ds.blocksDir, fileName, "_", strconv.Itoa(blockID))
+func (ds *DataServer) putFileBlock(fileName string, blockID int64, data []byte) error {
+	filePath := filepath.Join(ds.blocksDir, fileName+"_"+strconv.Itoa(int(blockID)))
 	err := os.WriteFile(filePath, data, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to write file %s: %v", filePath, err)
 	}
-	// TODO: commit to update metadata
 	return nil
 }

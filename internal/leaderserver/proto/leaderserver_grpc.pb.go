@@ -25,6 +25,10 @@ type LeaderServerClient interface {
 	GetLeader(ctx context.Context, in *GetLeaderRequest, opts ...grpc.CallOption) (*GetLeaderReply, error)
 	GetBlockInfo(ctx context.Context, in *GetBlockInfoRequest, opts ...grpc.CallOption) (*GetBlockInfoReply, error)
 	GetFileOK(ctx context.Context, in *GetFileOKRequest, opts ...grpc.CallOption) (*GetFileOKReply, error)
+	PutBlockInfo(ctx context.Context, in *PutBlockInfoRequest, opts ...grpc.CallOption) (*PutBlockInfoReply, error)
+	PutFileOK(ctx context.Context, in *PutFileOKRequest, opts ...grpc.CallOption) (*PutFileOKReply, error)
+	DelFile(ctx context.Context, in *DelFileRequest, opts ...grpc.CallOption) (*DelFileReply, error)
+	GetMetadata(ctx context.Context, in *GetMetadataRequest, opts ...grpc.CallOption) (*GetMetadataReply, error)
 }
 
 type leaderServerClient struct {
@@ -62,6 +66,42 @@ func (c *leaderServerClient) GetFileOK(ctx context.Context, in *GetFileOKRequest
 	return out, nil
 }
 
+func (c *leaderServerClient) PutBlockInfo(ctx context.Context, in *PutBlockInfoRequest, opts ...grpc.CallOption) (*PutBlockInfoReply, error) {
+	out := new(PutBlockInfoReply)
+	err := c.cc.Invoke(ctx, "/leaderserver.LeaderServer/PutBlockInfo", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *leaderServerClient) PutFileOK(ctx context.Context, in *PutFileOKRequest, opts ...grpc.CallOption) (*PutFileOKReply, error) {
+	out := new(PutFileOKReply)
+	err := c.cc.Invoke(ctx, "/leaderserver.LeaderServer/PutFileOK", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *leaderServerClient) DelFile(ctx context.Context, in *DelFileRequest, opts ...grpc.CallOption) (*DelFileReply, error) {
+	out := new(DelFileReply)
+	err := c.cc.Invoke(ctx, "/leaderserver.LeaderServer/DelFile", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *leaderServerClient) GetMetadata(ctx context.Context, in *GetMetadataRequest, opts ...grpc.CallOption) (*GetMetadataReply, error) {
+	out := new(GetMetadataReply)
+	err := c.cc.Invoke(ctx, "/leaderserver.LeaderServer/GetMetadata", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // LeaderServerServer is the server API for LeaderServer service.
 // All implementations must embed UnimplementedLeaderServerServer
 // for forward compatibility
@@ -69,6 +109,10 @@ type LeaderServerServer interface {
 	GetLeader(context.Context, *GetLeaderRequest) (*GetLeaderReply, error)
 	GetBlockInfo(context.Context, *GetBlockInfoRequest) (*GetBlockInfoReply, error)
 	GetFileOK(context.Context, *GetFileOKRequest) (*GetFileOKReply, error)
+	PutBlockInfo(context.Context, *PutBlockInfoRequest) (*PutBlockInfoReply, error)
+	PutFileOK(context.Context, *PutFileOKRequest) (*PutFileOKReply, error)
+	DelFile(context.Context, *DelFileRequest) (*DelFileReply, error)
+	GetMetadata(context.Context, *GetMetadataRequest) (*GetMetadataReply, error)
 	mustEmbedUnimplementedLeaderServerServer()
 }
 
@@ -84,6 +128,18 @@ func (UnimplementedLeaderServerServer) GetBlockInfo(context.Context, *GetBlockIn
 }
 func (UnimplementedLeaderServerServer) GetFileOK(context.Context, *GetFileOKRequest) (*GetFileOKReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetFileOK not implemented")
+}
+func (UnimplementedLeaderServerServer) PutBlockInfo(context.Context, *PutBlockInfoRequest) (*PutBlockInfoReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PutBlockInfo not implemented")
+}
+func (UnimplementedLeaderServerServer) PutFileOK(context.Context, *PutFileOKRequest) (*PutFileOKReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PutFileOK not implemented")
+}
+func (UnimplementedLeaderServerServer) DelFile(context.Context, *DelFileRequest) (*DelFileReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DelFile not implemented")
+}
+func (UnimplementedLeaderServerServer) GetMetadata(context.Context, *GetMetadataRequest) (*GetMetadataReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMetadata not implemented")
 }
 func (UnimplementedLeaderServerServer) mustEmbedUnimplementedLeaderServerServer() {}
 
@@ -152,6 +208,78 @@ func _LeaderServer_GetFileOK_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _LeaderServer_PutBlockInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PutBlockInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LeaderServerServer).PutBlockInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/leaderserver.LeaderServer/PutBlockInfo",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LeaderServerServer).PutBlockInfo(ctx, req.(*PutBlockInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LeaderServer_PutFileOK_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PutFileOKRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LeaderServerServer).PutFileOK(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/leaderserver.LeaderServer/PutFileOK",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LeaderServerServer).PutFileOK(ctx, req.(*PutFileOKRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LeaderServer_DelFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DelFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LeaderServerServer).DelFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/leaderserver.LeaderServer/DelFile",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LeaderServerServer).DelFile(ctx, req.(*DelFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LeaderServer_GetMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMetadataRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LeaderServerServer).GetMetadata(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/leaderserver.LeaderServer/GetMetadata",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LeaderServerServer).GetMetadata(ctx, req.(*GetMetadataRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // LeaderServer_ServiceDesc is the grpc.ServiceDesc for LeaderServer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -170,6 +298,22 @@ var LeaderServer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetFileOK",
 			Handler:    _LeaderServer_GetFileOK_Handler,
+		},
+		{
+			MethodName: "PutBlockInfo",
+			Handler:    _LeaderServer_PutBlockInfo_Handler,
+		},
+		{
+			MethodName: "PutFileOK",
+			Handler:    _LeaderServer_PutFileOK_Handler,
+		},
+		{
+			MethodName: "DelFile",
+			Handler:    _LeaderServer_DelFile_Handler,
+		},
+		{
+			MethodName: "GetMetadata",
+			Handler:    _LeaderServer_GetMetadata_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

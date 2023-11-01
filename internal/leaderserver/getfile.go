@@ -6,11 +6,11 @@ import (
 
 	pb "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/proto"
 
-	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/metadata"
+	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/metadata"
 )
 
 func (l *LeaderServer) GetBlockInfo(ctx context.Context, in *pb.GetBlockInfoRequest) (*pb.GetBlockInfoReply, error) {
-	err := l.acquireFileSemaphore(in.FileName)
+	err := l.acquireFileSemaphore(in.FileName, 1)
 	if err != nil {
 		return nil, err
 	}
@@ -18,9 +18,9 @@ func (l *LeaderServer) GetBlockInfo(ctx context.Context, in *pb.GetBlockInfoRequ
 	if err != nil {
 		return nil, err
 	}
-	getBlockInfoReplyBlockMeta := map[int64]*pb.GetBlockInfoReply_BlockMeta{}
+	getBlockInfoReplyBlockMeta := map[int64]*pb.BlockMeta{}
 	for blockID, blockMeta := range blockInfo {
-		getBlockInfoReplyBlockMeta[blockID] = &pb.GetBlockInfoReply_BlockMeta{
+		getBlockInfoReplyBlockMeta[blockID] = &pb.BlockMeta{
 			HostNames: blockMeta.HostNames,
 			FileName:  blockMeta.FileName,
 			BlockID:   blockMeta.BlockID,
@@ -29,14 +29,6 @@ func (l *LeaderServer) GetBlockInfo(ctx context.Context, in *pb.GetBlockInfoRequ
 	return &pb.GetBlockInfoReply{
 		BlockInfo: getBlockInfoReplyBlockMeta,
 	}, nil
-}
-
-func (l *LeaderServer) acquireFileSemaphore(fileName string) error {
-	if _, ok := l.fileSemaphore[fileName]; !ok {
-		return fmt.Errorf("file %s not found", fileName)
-	}
-	l.fileSemaphore[fileName].Acquire(context.Background(), 1)
-	return nil
 }
 
 func (l *LeaderServer) getBlockInfo(fileName string) (metadata.BlockInfo, error) {
@@ -49,8 +41,4 @@ func (l *LeaderServer) GetFileOK(ctx context.Context, in *pb.GetFileOKRequest) (
 	}
 	l.releaseFileSemaphore(in.FileName, 1)
 	return &pb.GetFileOKReply{}, nil
-}
-
-func (l *LeaderServer) releaseFileSemaphore(fileName string, weight int64) {
-	l.fileSemaphore[fileName].Release(weight)
 }

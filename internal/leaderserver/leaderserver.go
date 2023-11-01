@@ -6,8 +6,8 @@ import (
 	"net"
 
 	"github.com/sirupsen/logrus"
+	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/metadata"
 	pb "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/proto"
-	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/metadata"
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc"
 )
@@ -80,8 +80,46 @@ func (l *LeaderServer) getLeader() (string, error) {
 	return l.leader, nil
 }
 
+// GetMetadata returns the metadata to the client through gRPC.
+func (l *LeaderServer) GetMetadata(ctx context.Context, in *pb.GetMetadataRequest) (*pb.GetMetadataReply, error) {
+	metadata := l.getMetadata()
+	getMetadaReply := &pb.GetMetadataReply{
+		FileInfo: map[string]*pb.BlockInfo{},
+	}
+	for fileName, blockInfo := range metadata.FileInfo {
+		getMetadaReply.FileInfo[fileName] = &pb.BlockInfo{
+			BlockInfo: map[int64]*pb.BlockMeta{},
+		}
+		for blockID, blockMeta := range blockInfo {
+			getMetadaReply.FileInfo[fileName].BlockInfo[blockID] = &pb.BlockMeta{
+				HostNames: blockMeta.HostNames,
+				FileName:  blockMeta.FileName,
+				BlockID:   blockMeta.BlockID,
+			}
+		}
+	}
+	return getMetadaReply, nil
+}
+
+// getMetadata returns the metadata.
+func (l *LeaderServer) getMetadata() *metadata.Metadata {
+	return l.metadata
+}
+
 func (l *LeaderServer) SetLeader(leader string) {
 	l.leader = leader
 }
 
-// TODO: Elect Leader, Put file, get file, del file
+// TODO: Elect Leader
+
+func (l *LeaderServer) acquireFileSemaphore(fileName string, weight int64) error {
+	if _, ok := l.fileSemaphore[fileName]; !ok {
+		return fmt.Errorf("file %s not found", fileName)
+	}
+	l.fileSemaphore[fileName].Acquire(context.Background(), weight)
+	return nil
+}
+
+func (l *LeaderServer) releaseFileSemaphore(fileName string, weight int64) {
+	l.fileSemaphore[fileName].Release(weight)
+}

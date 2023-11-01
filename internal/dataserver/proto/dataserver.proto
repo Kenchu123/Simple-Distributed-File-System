@@ -5,9 +5,8 @@ option go_package = "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/dataserv
 package dataserver;
 
 service DataServer {
-    rpc GetFileBlock(GetFileBlockRequest) returns (GetFileBlockReply) {}
-    rpc GetFileBlocks(GetFileBlocksRequest) returns (GetFileBlocksReply) {}
-    rpc PutFileBlock(PutFileBlockRequest) returns (PutFileBlockReply) {}
+    rpc GetFileBlock(GetFileBlockRequest) returns (stream GetFileBlockReply) {}
+    rpc PutFileBlock(stream PutFileBlockStream) returns (PutFileBlockReply) {}
 }
 
 message GetFileBlockRequest {
@@ -16,28 +15,13 @@ message GetFileBlockRequest {
 }
 
 message GetFileBlockReply {
-    bytes data = 1;
-}
-
-message GetFileBlocksRequest {
-    string fileName = 1;
-}
-
-message GetFileBlocksReply {
-    message DataBlocks {
-        int64 blockID = 1;
-        int64 blockSize = 2;
-        bytes data = 3;
-    }
-    string fileName = 1;
-    repeated DataBlocks dataBlocks = 2;
+    bytes chunk = 1;
 }
 
 message PutFileBlockRequest {
     string fileName = 1;
     int64 blockID = 2;
-    int64 blockSize = 3;
-    bytes data = 4;
+    bytes chunk = 3;
 }
 
 message PutFileBlockReply {
