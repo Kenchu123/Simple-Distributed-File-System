@@ -17,6 +17,9 @@ type Client struct {
 	leaderServerPort string
 	dataServerPort   string
 	blockSize        int64
+
+	fileReadLocks  map[string]bool
+	fileWriteLocks map[string]bool
 }
 
 // NewClient creates a new Client.
@@ -29,6 +32,8 @@ func NewClient(configPath string) (*Client, error) {
 		leaderServerPort: config.LeaderServerPort,
 		dataServerPort:   config.DataServerPort,
 		blockSize:        config.BlockSize,
+		fileReadLocks:    map[string]bool{},
+		fileWriteLocks:   map[string]bool{},
 	}, nil
 }
 
@@ -41,7 +46,7 @@ func (c *Client) getLeader() (string, error) {
 	defer conn.Close()
 
 	client := leaderServerProto.NewLeaderServerClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	r, err := client.GetLeader(ctx, &leaderServerProto.GetLeaderRequest{})
 	if err != nil {
@@ -58,7 +63,7 @@ func (c *Client) getMetadata(leader string) (*metadata.Metadata, error) {
 	defer conn.Close()
 
 	client := leaderServerProto.NewLeaderServerClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	r, err := client.GetMetadata(ctx, &leaderServerProto.GetMetadataRequest{})
 	if err != nil {

@@ -35,7 +35,7 @@ func (ds *DataServer) replicateFileBlock(fileName string, blockID int64, to stri
 	defer conn.Close()
 
 	client := pb.NewDataServerClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	stream, err := client.PutFileBlock(ctx)
 	if err != nil {

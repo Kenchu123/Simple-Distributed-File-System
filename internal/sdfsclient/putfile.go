@@ -97,7 +97,7 @@ func (c *Client) putBlockInfo(leader, fileName string, fileSize int64) (metadata
 	defer conn.Close()
 
 	client := leaderServerProto.NewLeaderServerClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	r, err := client.PutBlockInfo(ctx, &leaderServerProto.PutBlockInfoRequest{
 		FileName: fileName,
@@ -171,7 +171,7 @@ func (c *Client) putFileOK(hostname, fileName string, blockInfo metadata.BlockIn
 	defer conn.Close()
 
 	client := leaderServerProto.NewLeaderServerClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
 	putFileOKRequestBlockInfo := map[int64]*leaderServerProto.BlockMeta{}

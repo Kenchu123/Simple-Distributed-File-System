@@ -44,7 +44,7 @@ func (c *Client) delFile(leader, sdfsfilename string) error {
 	defer conn.Close()
 
 	client := leaderServerProto.NewLeaderServerClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	_, err = client.DelFile(ctx, &leaderServerProto.DelFileRequest{
 		FileName: sdfsfilename,

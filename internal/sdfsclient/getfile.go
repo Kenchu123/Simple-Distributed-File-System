@@ -164,7 +164,7 @@ func (c *Client) getFileOK(hostname, fileName string) {
 	defer conn.Close()
 
 	client := leaderServerProto.NewLeaderServerClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	_, err = client.GetFileOK(ctx, &leaderServerProto.GetFileOKRequest{
 		FileName: fileName,

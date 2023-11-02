@@ -1,9 +1,10 @@
 leader_server_port: "11111"
 data_server_port: "48763"
 member_server_port: "7132"
+command_server_port: "7133"
 blocks_dir: "./blocks"
 block_size: 500000000 # 500MB
-replication_factor: 4
+replication_factor: 2
 machines:
   - hostname: "fa23-cs425-8701.cs.illinois.edu"
     id: "1"

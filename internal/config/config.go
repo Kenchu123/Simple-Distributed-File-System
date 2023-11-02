@@ -12,16 +12,17 @@ import (
 
 // Config is the configuration for the servers
 type Config struct {
-	Machines         []Machine     `yaml:"machines"`
-	LeaderServerPort string        `yaml:"leader_server_port"`
-	DataServerPort   string        `yaml:"data_server_port"`
-	MemberServerPort string        `yaml:"member_server_port"`
-	BlocksDir        string        `yaml:"blocks_dir"`
-	BlockSize        int64         `yaml:"block_size"`
-	RelicationFactor int           `yaml:"replication_factor"`
-	Heartbeat        Heartbeat     `yaml:"heartbeat"`
-	FailureDetect    FailureDetect `yaml:"failure_detect"`
-	Cleanup          Cleanup       `yaml:"cleanup"`
+	Machines          []Machine     `yaml:"machines"`
+	LeaderServerPort  string        `yaml:"leader_server_port"`
+	DataServerPort    string        `yaml:"data_server_port"`
+	MemberServerPort  string        `yaml:"member_server_port"`
+	CommandServerPort string        `yaml:"command_server_port"`
+	BlocksDir         string        `yaml:"blocks_dir"`
+	BlockSize         int64         `yaml:"block_size"`
+	RelicationFactor  int           `yaml:"replication_factor"`
+	Heartbeat         Heartbeat     `yaml:"heartbeat"`
+	FailureDetect     FailureDetect `yaml:"failure_detect"`
+	Cleanup           Cleanup       `yaml:"cleanup"`
 }
 
 // Machine is the configuration for a single server

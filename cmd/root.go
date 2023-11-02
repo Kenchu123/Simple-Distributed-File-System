@@ -14,6 +14,7 @@ import (
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/cmd/list_self"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/cmd/ls"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/cmd/metadata"
+	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/cmd/multiread"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/cmd/put"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/cmd/serve"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/cmd/store"
@@ -35,6 +36,6 @@ func Execute() error {
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&logPath, "log", "l", "logs/sdfs.log", "path to log file")
 
-	rootCmd.AddCommand(serve.New(), get.New(), put.New(), ls.New(), store.New(), metadata.New(), delete.New())
+	rootCmd.AddCommand(serve.New(), get.New(), put.New(), ls.New(), store.New(), metadata.New(), delete.New(), multiread.New())
 	rootCmd.AddCommand(join.New(), leave.New(), fail.New(), config.New(), list_mem.New(), list_self.New(), enable.New(), disable.New())
 }

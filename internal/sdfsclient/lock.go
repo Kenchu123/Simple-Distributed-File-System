@@ -31,6 +31,7 @@ func (c *Client) acquireFileReadLock(leader, fileName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to acquire read lock: %v", err)
 	}
+	c.fileReadLocks[leader+":"+fileName] = true
 	c.releaseFileReadLockOnInterrupt(leader, fileName)
 	return nil
 }
@@ -41,6 +42,9 @@ func (c *Client) releaseFileReadLockOnInterrupt(leader, fileName string) {
 	signal.Notify(sig, os.Interrupt)
 	go func() {
 		<-sig
+		if _, ok := c.fileReadLocks[leader+":"+fileName]; !ok {
+			os.Exit(1)
+		}
 		logrus.Infof("Release read lock on interrupt for file %s", fileName)
 		c.releaseFileReadLock(leader, fileName)
 		os.Exit(1)
@@ -56,7 +60,6 @@ func (c *Client) releaseFileReadLock(leader, fileName string) error {
 	defer conn.Close()
 
 	client := leaderServerProto.NewLeaderServerClient(conn)
-	// TODO: release lock timeout
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
 	_, err = client.ReleaseReadLock(ctx, &leaderServerProto.ReleaseLockRequest{
@@ -65,6 +68,7 @@ func (c *Client) releaseFileReadLock(leader, fileName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to release read lock: %v", err)
 	}
+	delete(c.fileReadLocks, leader+":"+fileName)
 	return nil
 }
 
@@ -86,6 +90,7 @@ func (c *Client) acquireFileWriteLock(leader, fileName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to acquire write lock: %v", err)
 	}
+	c.fileWriteLocks[leader+":"+fileName] = true
 	c.releaseFileWriteLockOnInterrupt(leader, fileName)
 	return nil
 }
@@ -96,6 +101,9 @@ func (c *Client) releaseFileWriteLockOnInterrupt(leader, fileName string) {
 	signal.Notify(sig, os.Interrupt)
 	go func() {
 		<-sig
+		if _, ok := c.fileWriteLocks[leader+":"+fileName]; !ok {
+			os.Exit(1)
+		}
 		logrus.Infof("Release write lock on interrupt for file %s", fileName)
 		c.releaseFileWriteLock(leader, fileName)
 		os.Exit(1)
@@ -111,7 +119,6 @@ func (c *Client) releaseFileWriteLock(leader, fileName string) error {
 	defer conn.Close()
 
 	client := leaderServerProto.NewLeaderServerClient(conn)
-	// TODO: release lock timeout
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
 	_, err = client.ReleaseWriteLock(ctx, &leaderServerProto.ReleaseLockRequest{
@@ -120,5 +127,6 @@ func (c *Client) releaseFileWriteLock(leader, fileName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to release write lock: %v", err)
 	}
+	delete(c.fileWriteLocks, leader+":"+fileName)
 	return nil
 }

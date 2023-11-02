@@ -3,6 +3,7 @@ package sdfsserver
 import (
 	"sync"
 
+	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/command"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/config"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/dataserver"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver"
@@ -11,9 +12,10 @@ import (
 
 // SDFSServer handles file operations to SDFS.
 type SDFSServer struct {
-	LeaderServer *leaderserver.LeaderServer
-	DataServer   *dataserver.DataServer
-	Memberserver *memberserver.Server
+	LeaderServer  *leaderserver.LeaderServer
+	DataServer    *dataserver.DataServer
+	Memberserver  *memberserver.Server
+	CommandServer *command.CommandServer
 }
 
 // NewServer creates a new Server.
@@ -25,10 +27,12 @@ func NewServer(configPath string) (*SDFSServer, error) {
 	leaderServer := leaderserver.NewLeaderServer(config.LeaderServerPort, config.DataServerPort, config.BlockSize, config.RelicationFactor)
 	dataServer := dataserver.NewDataServer(config.DataServerPort, config.BlocksDir)
 	memberServer := memberserver.NewMemberServer(config.MemberServerPort)
+	commandServer := command.NewCommandServer(config.CommandServerPort, configPath)
 	return &SDFSServer{
-		LeaderServer: leaderServer,
-		DataServer:   dataServer,
-		Memberserver: memberServer,
+		LeaderServer:  leaderServer,
+		DataServer:    dataServer,
+		Memberserver:  memberServer,
+		CommandServer: commandServer,
 	}, nil
 }
 
@@ -47,6 +51,10 @@ func (s *SDFSServer) Run() {
 	go func() {
 		defer wg.Done()
 		s.Memberserver.Run()
+	}()
+	go func() {
+		defer wg.Done()
+		s.CommandServer.Run()
 	}()
 	wg.Wait()
 }

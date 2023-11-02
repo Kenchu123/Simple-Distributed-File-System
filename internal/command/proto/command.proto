@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option go_package = "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/command";
+
+package command;
+
+service Command {
+    rpc ExecuteCommand(ExecuteCommandRequest) returns (ExecuteCommandReply) {}
+}
+
+message ExecuteCommandRequest {
+    string command = 1;
+    repeated string args = 2;
+}
+
+message ExecuteCommandReply {
+    string output = 1;
+}
