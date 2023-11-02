@@ -20,13 +20,16 @@ import (
 
 // LeaderServer handles file operations permission and Leader election.
 type LeaderServer struct {
-	port              string
-	leader            string
-	hostname          string
-	metadata          *metadata.Metadata
-	fileSemaphore     map[string]*semaphore.Weighted
-	blockSize         int64
-	replicationFactor int
+	port          string
+	leader        string
+	hostname      string
+	metadata      *metadata.Metadata
+	fileSemaphore map[string]*semaphore.Weighted
+	blockSize     int64
+
+	recoverReplicaTicker     *time.Ticker
+	recoverReplicaTickerDone chan bool
+	replicationFactor        int
 
 	electLeaderTicker     *time.Ticker
 	electLeaderTickerDone chan bool
@@ -53,13 +56,14 @@ func NewLeaderServer(port string, blockSize int64, replicationFactor int) *Leade
 
 // Run starts the Leader.
 func (l *LeaderServer) Run() {
-	go l.startElectingLeader()
 	listen, err := net.Listen("tcp", fmt.Sprintf(":%s", l.port))
 	if err != nil {
 		logrus.Fatalf("failed to listen on port %s: %v\n", l.port, err)
 		return
 	}
 	defer listen.Close()
+	go l.startElectingLeader()
+	go l.startRecoveringReplica()
 	grpcServer := grpc.NewServer()
 	pb.RegisterLeaderServerServer(grpcServer, l)
 	logrus.Infof("LeaderServer listening on port %s", l.port)
@@ -86,7 +90,7 @@ func (l *LeaderServer) GetMetadata(ctx context.Context, in *pb.GetMetadataReques
 	getMetadaReply := &pb.GetMetadataReply{
 		FileInfo: map[string]*pb.BlockInfo{},
 	}
-	for fileName, blockInfo := range metadata.FileInfo {
+	for fileName, blockInfo := range metadata.GetFileInfo() {
 		getMetadaReply.FileInfo[fileName] = &pb.BlockInfo{
 			BlockInfo: map[int64]*pb.BlockMeta{},
 		}

@@ -67,14 +67,15 @@ func (c *Client) getMetadata(leader string) (*metadata.Metadata, error) {
 
 	newMetadata := metadata.NewMetadata()
 	for fileName, blockInfo := range r.GetFileInfo() {
-		newMetadata.FileInfo[fileName] = metadata.BlockInfo{}
+		newBlockInfo := metadata.BlockInfo{}
 		for blockID, blockMeta := range blockInfo.GetBlockInfo() {
-			newMetadata.FileInfo[fileName][blockID] = metadata.BlockMeta{
+			newBlockInfo[blockID] = metadata.BlockMeta{
 				HostNames: blockMeta.HostNames,
 				FileName:  blockMeta.FileName,
 				BlockID:   blockMeta.BlockID,
 			}
 		}
+		newMetadata.AddOrUpdateBlockInfo(fileName, newBlockInfo)
 	}
 	return newMetadata, nil
 }

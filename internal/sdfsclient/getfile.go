@@ -93,7 +93,7 @@ func (c *Client) getBlockInfo(leader, fileName string) (metadata.BlockInfo, erro
 	defer conn.Close()
 
 	client := leaderServerProto.NewLeaderServerClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	r, err := client.GetBlockInfo(ctx, &leaderServerProto.GetBlockInfoRequest{
 		FileName: fileName,
@@ -122,7 +122,7 @@ func (c *Client) getFileBlock(hostname, filename string, blockID int64) ([]byte,
 	defer conn.Close()
 
 	client := dataServerProto.NewDataServerClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	stream, err := client.GetFileBlock(ctx, &dataServerProto.GetFileBlockRequest{FileName: filename, BlockID: blockID})
 	if err != nil {

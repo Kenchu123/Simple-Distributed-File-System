@@ -86,7 +86,7 @@ func (l *LeaderServer) PutFileOK(ctx context.Context, in *pb.PutFileOKRequest) (
 			BlockID:   blockMeta.BlockID,
 		}
 	}
-	l.metadata.AddOrUpdateFile(in.FileName, blockInfo)
+	l.metadata.AddOrUpdateBlockInfo(in.FileName, blockInfo)
 	l.fileSemaphore[in.FileName] = semaphore.NewWeighted(2)
 	return &pb.PutFileOKReply{}, nil
 }

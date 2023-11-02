@@ -28,7 +28,7 @@ func (c *Client) Store() (string, error) {
 	logrus.Infof("hostName: %s", hostName)
 
 	re := ""
-	for fileName, blockMetas := range metadata.FileInfo {
+	for fileName, blockMetas := range metadata.GetFileInfo() {
 		for blockID, blockMeta := range blockMetas {
 			for _, host := range blockMeta.HostNames {
 				if host == hostName {
