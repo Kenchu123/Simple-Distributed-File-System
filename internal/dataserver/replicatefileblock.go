@@ -10,6 +10,7 @@ import (
 	pb "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/dataserver/proto"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // ReplicateFileBlock replicates a file block to another data server
@@ -22,7 +23,12 @@ func (ds *DataServer) replicateFileBlock(fileName string, blockID int64, to stri
 	if err != nil {
 		return err
 	}
-	conn, err := grpc.Dial(to+":"+ds.port, grpc.WithInsecure())
+	conn, err := grpc.Dial(to+":"+ds.port, []grpc.DialOption{
+		grpc.WithInitialWindowSize(1024 * 1024 * 1024),
+		grpc.WithInitialConnWindowSize(1024 * 1024 * 1024),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}...)
+
 	if err != nil {
 		return fmt.Errorf("failed to connect to %s: %v", to, err)
 	}
