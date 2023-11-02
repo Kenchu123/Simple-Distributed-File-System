@@ -100,6 +100,9 @@ func (l *LeaderServer) recoverReplica() {
 					}
 				}
 			}
+			if len(alivedHostnames) == 0 {
+				continue
+			}
 			for hostname := range newHostnames {
 				toReclicates = append(toReclicates, ToReplicate{
 					FileName: fileName,

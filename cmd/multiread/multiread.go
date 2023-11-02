@@ -40,6 +40,7 @@ func multiread(cmd *cobra.Command, args []string) {
 			_, err := client.ExecuteCommand("get", args)
 			if err != nil {
 				logrus.Errorf("Error in machine %s: %v", hostname, err)
+				return
 			}
 			logrus.Infof("Finished get at machine %s", hostname)
 		}(machine.Hostname, conf.CommandServerPort)
