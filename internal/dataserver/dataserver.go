@@ -3,6 +3,7 @@ package dataserver
 import (
 	"fmt"
 	"net"
+	"path/filepath"
 
 	"github.com/sirupsen/logrus"
 	pb "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/dataserver/proto"
@@ -52,4 +53,8 @@ func (ds *DataServer) Run() {
 		logrus.Fatalf("failed to serve: %v\n", err)
 		return
 	}
+}
+
+func (ds *DataServer) GetFilePath(fileName string, blockID int64) string {
+	return filepath.Join(ds.blocksDir, fmt.Sprintf("%s_%d", fileName, blockID))
 }

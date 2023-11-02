@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
-	"strconv"
 
 	"github.com/sirupsen/logrus"
 	pb "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/dataserver/proto"
@@ -40,7 +38,7 @@ func (ds *DataServer) PutFileBlock(stream pb.DataServer_PutFileBlockServer) erro
 }
 
 func (ds *DataServer) writeFileBlock(fileName string, blockID int64, data []byte) error {
-	filePath := filepath.Join(ds.blocksDir, fileName+"_"+strconv.Itoa(int(blockID)))
+	filePath := ds.GetFilePath(fileName, blockID)
 	err := os.WriteFile(filePath, data, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to write file %s: %v", filePath, err)

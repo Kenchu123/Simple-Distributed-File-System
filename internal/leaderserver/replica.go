@@ -1,13 +1,17 @@
 package leaderserver
 
 import (
+	"context"
 	"math/rand"
 	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
+	dataServerProto "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/dataserver/proto"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/metadata"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/memberserver/heartbeat"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type ToReplicates []ToReplicate
@@ -38,7 +42,11 @@ func (l *LeaderServer) stopRecoveringReplica() {
 }
 
 func (l *LeaderServer) recoverReplica() {
-	// TODO: only leader runs this
+	// only leader can recover replica
+	leader := l.getLeader()
+	if leader != l.hostname {
+		return
+	}
 	heartbeat, err := heartbeat.GetInstance()
 	if err != nil {
 		logrus.Errorf("Failed to get heartbeat instance: %v", err)
@@ -56,7 +64,6 @@ func (l *LeaderServer) recoverReplica() {
 		hostnames = append(hostnames, member.GetName())
 		hostnameSet[member.GetName()] = struct{}{}
 	}
-	// TODO: require the metadata lock
 	// scan all file blocks and check if the replica hostname is in the member list
 	toReclicates := make(ToReplicates, 0)
 	for fileName, blockInfo := range l.metadata.GetFileInfo() {
@@ -139,7 +146,22 @@ func (l *LeaderServer) recoverReplica() {
 
 func (l *LeaderServer) replicate(toReplicate ToReplicate) error {
 	logrus.Infof("Replicating %+v", toReplicate)
-	// sleep for a 3 seconds
-	time.Sleep(time.Second * 3)
+	conn, err := grpc.Dial(toReplicate.From+":"+l.dataServerPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	client := dataServerProto.NewDataServerClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	_, err = client.ReplicateFileBlock(ctx, &dataServerProto.ReplicateFileBlockRequest{
+		FileName: toReplicate.FileName,
+		BlockID:  toReplicate.BlockID,
+		To:       toReplicate.To,
+	})
+	if err != nil {
+		return err
+	}
+	logrus.Infof("Replicated %+v", toReplicate)
 	return nil
 }

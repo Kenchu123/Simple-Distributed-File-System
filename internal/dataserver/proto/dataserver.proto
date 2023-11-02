@@ -6,7 +6,8 @@ package dataserver;
 
 service DataServer {
     rpc GetFileBlock(GetFileBlockRequest) returns (stream GetFileBlockReply) {}
-    rpc PutFileBlock(stream PutFileBlockStream) returns (PutFileBlockReply) {}
+    rpc PutFileBlock(stream PutFileBlockRequest) returns (PutFileBlockReply) {}
+    rpc ReplicateFileBlock(ReplicateFileBlockRequest) returns (ReplicateFileBlockReply) {}
 }
 
 message GetFileBlockRequest {
@@ -27,3 +28,11 @@ message PutFileBlockRequest {
 message PutFileBlockReply {
     bool ok = 1;
 }
+
+message ReplicateFileBlockRequest {
+    string fileName = 1;
+    int64 blockID = 2;
+    string to = 3;
+}
+
+message ReplicateFileBlockReply {}

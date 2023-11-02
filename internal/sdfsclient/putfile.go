@@ -74,6 +74,7 @@ func (c *Client) PutFile(localfilename, sdfsfilename string) error {
 		return fmt.Errorf("Failed to put file %s to SDFS with error %w", sdfsfilename, err)
 	}
 	logrus.Infof("Put all blocks of file %s to SDFS", sdfsfilename)
+	// TODO: putblockOK
 	return nil
 }
 

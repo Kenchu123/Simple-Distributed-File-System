@@ -16,12 +16,13 @@ import (
 
 // LeaderServer handles file operations permission and Leader election.
 type LeaderServer struct {
-	port          string
-	leader        string
-	hostname      string
-	metadata      *metadata.Metadata
-	fileSemaphore map[string]*semaphore.Weighted
-	blockSize     int64
+	port           string
+	dataServerPort string
+	leader         string
+	hostname       string
+	metadata       *metadata.Metadata
+	fileSemaphore  map[string]*semaphore.Weighted
+	blockSize      int64
 
 	recoverReplicaTicker     *time.Ticker
 	recoverReplicaTickerDone chan bool
@@ -29,11 +30,15 @@ type LeaderServer struct {
 
 	electLeaderTicker     *time.Ticker
 	electLeaderTickerDone chan bool
+
+	syncMetadataTicker     *time.Ticker
+	syncMetadataTickerDone chan bool
+
 	pb.UnimplementedLeaderServerServer
 }
 
 // NewLeader creates a new Leader.
-func NewLeaderServer(port string, blockSize int64, replicationFactor int) *LeaderServer {
+func NewLeaderServer(port, dataServerPort string, blockSize int64, replicationFactor int) *LeaderServer {
 	hostname, err := os.Hostname()
 	if err != nil {
 		logrus.Fatalf("failed to get hostname: %v\n", err)
@@ -41,6 +46,7 @@ func NewLeaderServer(port string, blockSize int64, replicationFactor int) *Leade
 	}
 	return &LeaderServer{
 		port:              port,
+		dataServerPort:    dataServerPort,
 		leader:            "", // find the right leader
 		hostname:          hostname,
 		metadata:          metadata.NewMetadata(),
@@ -60,6 +66,7 @@ func (l *LeaderServer) Run() {
 	defer listen.Close()
 	go l.startElectingLeader()
 	go l.startRecoveringReplica()
+	go l.startSyncingMetadata()
 	grpcServer := grpc.NewServer()
 	pb.RegisterLeaderServerServer(grpcServer, l)
 	logrus.Infof("LeaderServer listening on port %s", l.port)

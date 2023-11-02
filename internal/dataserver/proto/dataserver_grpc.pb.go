@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 type DataServerClient interface {
 	GetFileBlock(ctx context.Context, in *GetFileBlockRequest, opts ...grpc.CallOption) (DataServer_GetFileBlockClient, error)
 	PutFileBlock(ctx context.Context, opts ...grpc.CallOption) (DataServer_PutFileBlockClient, error)
+	ReplicateFileBlock(ctx context.Context, in *ReplicateFileBlockRequest, opts ...grpc.CallOption) (*ReplicateFileBlockReply, error)
 }
 
 type dataServerClient struct {
@@ -100,12 +101,22 @@ func (x *dataServerPutFileBlockClient) CloseAndRecv() (*PutFileBlockReply, error
 	return m, nil
 }
 
+func (c *dataServerClient) ReplicateFileBlock(ctx context.Context, in *ReplicateFileBlockRequest, opts ...grpc.CallOption) (*ReplicateFileBlockReply, error) {
+	out := new(ReplicateFileBlockReply)
+	err := c.cc.Invoke(ctx, "/dataserver.DataServer/ReplicateFileBlock", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DataServerServer is the server API for DataServer service.
 // All implementations must embed UnimplementedDataServerServer
 // for forward compatibility
 type DataServerServer interface {
 	GetFileBlock(*GetFileBlockRequest, DataServer_GetFileBlockServer) error
 	PutFileBlock(DataServer_PutFileBlockServer) error
+	ReplicateFileBlock(context.Context, *ReplicateFileBlockRequest) (*ReplicateFileBlockReply, error)
 	mustEmbedUnimplementedDataServerServer()
 }
 
@@ -118,6 +129,9 @@ func (UnimplementedDataServerServer) GetFileBlock(*GetFileBlockRequest, DataServ
 }
 func (UnimplementedDataServerServer) PutFileBlock(DataServer_PutFileBlockServer) error {
 	return status.Errorf(codes.Unimplemented, "method PutFileBlock not implemented")
+}
+func (UnimplementedDataServerServer) ReplicateFileBlock(context.Context, *ReplicateFileBlockRequest) (*ReplicateFileBlockReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReplicateFileBlock not implemented")
 }
 func (UnimplementedDataServerServer) mustEmbedUnimplementedDataServerServer() {}
 
@@ -179,13 +193,36 @@ func (x *dataServerPutFileBlockServer) Recv() (*PutFileBlockRequest, error) {
 	return m, nil
 }
 
+func _DataServer_ReplicateFileBlock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReplicateFileBlockRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataServerServer).ReplicateFileBlock(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dataserver.DataServer/ReplicateFileBlock",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataServerServer).ReplicateFileBlock(ctx, req.(*ReplicateFileBlockRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DataServer_ServiceDesc is the grpc.ServiceDesc for DataServer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var DataServer_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "dataserver.DataServer",
 	HandlerType: (*DataServerServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ReplicateFileBlock",
+			Handler:    _DataServer_ReplicateFileBlock_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "GetFileBlock",
