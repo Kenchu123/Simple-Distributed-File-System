@@ -66,8 +66,8 @@ func (l *LeaderServer) recoverReplica() {
 	}
 	// scan all file blocks and check if the replica hostname is in the member list
 	toReclicates := make(ToReplicates, 0)
-	for fileName, blockInfo := range l.metadata.GetFileInfo() {
-		for blockID, blockMeta := range blockInfo {
+	for fileName, fileInfo := range l.metadata.GetFileInfo() {
+		for blockID, blockMeta := range fileInfo.BlockInfo {
 			alivedHostnames := []string{}
 			alivedHostnamesSet := make(map[string]struct{})
 			for _, hostname := range blockMeta.HostNames {

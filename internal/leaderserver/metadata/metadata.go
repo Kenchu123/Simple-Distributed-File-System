@@ -1,14 +1,22 @@
 package metadata
 
 import (
+	"context"
 	"fmt"
 	"sync"
+
+	"golang.org/x/sync/semaphore"
 )
 
 // Metadata handle metadata.
 type Metadata struct {
-	fileInfo map[string]BlockInfo // map[fileName]BlockInfo}
+	fileInfo map[string]FileInfo // map[fileName]BlockInfo}
 	mu       sync.RWMutex
+}
+
+type FileInfo struct {
+	semaphore *semaphore.Weighted
+	BlockInfo BlockInfo
 }
 
 // BlockInfo is the metadata of a file.
@@ -24,7 +32,7 @@ type BlockMeta struct {
 // NewMetadata creates a new metadata.
 func NewMetadata() *Metadata {
 	return &Metadata{
-		fileInfo: make(map[string]BlockInfo),
+		fileInfo: make(map[string]FileInfo),
 		mu:       sync.RWMutex{},
 	}
 }
@@ -36,7 +44,7 @@ func (m *Metadata) IsFileExist(fileName string) bool {
 	return ok
 }
 
-func (m *Metadata) GetFileInfo() map[string]BlockInfo {
+func (m *Metadata) GetFileInfo() map[string]FileInfo {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.fileInfo
@@ -48,14 +56,25 @@ func (m *Metadata) GetBlockInfo(fileName string) (BlockInfo, error) {
 	if _, ok := m.fileInfo[fileName]; !ok {
 		return nil, fmt.Errorf("file %s not found", fileName)
 	}
-	return m.fileInfo[fileName], nil
+	return m.fileInfo[fileName].BlockInfo, nil
 }
 
 // AddOrUpdateFile adds or updates a file to metadata.
 func (m *Metadata) AddOrUpdateBlockInfo(fileName string, blockInfo BlockInfo) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.fileInfo[fileName] = blockInfo
+	if !m.IsFileExist(fileName) {
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		m.fileInfo[fileName] = FileInfo{
+			BlockInfo: blockInfo,
+			semaphore: semaphore.NewWeighted(2),
+		}
+	} else {
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		fileInfo := m.fileInfo[fileName]
+		fileInfo.BlockInfo = blockInfo
+		m.fileInfo[fileName] = fileInfo
+	}
 }
 
 func (m *Metadata) GetBlockMeta(fileName string, blockID int64) (BlockMeta, error) {
@@ -86,4 +105,20 @@ func (m *Metadata) DelFile(fileName string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	delete(m.fileInfo, fileName)
+}
+
+func (m *Metadata) AcquireFileSemaphore(fileName string, weight int64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if _, ok := m.fileInfo[fileName]; !ok {
+		return fmt.Errorf("file %s not found", fileName)
+	}
+	m.fileInfo[fileName].semaphore.Acquire(context.Background(), weight)
+	return nil
+}
+
+func (m *Metadata) ReleaseFileSemaphore(fileName string, weight int64) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.fileInfo[fileName].semaphore.Release(weight)
 }

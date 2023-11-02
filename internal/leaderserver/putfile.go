@@ -8,7 +8,6 @@ import (
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/metadata"
 	pb "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/proto"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/memberserver/heartbeat"
-	"golang.org/x/sync/semaphore"
 )
 
 // PutBlockInfo handles the request to choose the block to put the file
@@ -87,6 +86,5 @@ func (l *LeaderServer) PutFileOK(ctx context.Context, in *pb.PutFileOKRequest) (
 		}
 	}
 	l.metadata.AddOrUpdateBlockInfo(in.FileName, blockInfo)
-	l.fileSemaphore[in.FileName] = semaphore.NewWeighted(2)
 	return &pb.PutFileOKReply{}, nil
 }

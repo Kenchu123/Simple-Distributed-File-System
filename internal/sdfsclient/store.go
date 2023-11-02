@@ -28,8 +28,8 @@ func (c *Client) Store() (string, error) {
 	logrus.Infof("hostName: %s", hostName)
 
 	re := ""
-	for fileName, blockMetas := range metadata.GetFileInfo() {
-		for blockID, blockMeta := range blockMetas {
+	for fileName, fileInfo := range metadata.GetFileInfo() {
+		for blockID, blockMeta := range fileInfo.BlockInfo {
 			for _, host := range blockMeta.HostNames {
 				if host == hostName {
 					re += fmt.Sprintf("-- file %s, block %d\n", fileName, blockID)

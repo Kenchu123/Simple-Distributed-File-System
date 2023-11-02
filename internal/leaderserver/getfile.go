@@ -36,7 +36,7 @@ func (l *LeaderServer) getBlockInfo(fileName string) (metadata.BlockInfo, error)
 }
 
 func (l *LeaderServer) GetFileOK(ctx context.Context, in *pb.GetFileOKRequest) (*pb.GetFileOKReply, error) {
-	if _, ok := l.fileSemaphore[in.FileName]; !ok {
+	if l.metadata.IsFileExist(in.FileName) == false {
 		return nil, fmt.Errorf("file %s not found", in.FileName)
 	}
 	l.releaseFileSemaphore(in.FileName, 1)

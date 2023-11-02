@@ -13,6 +13,5 @@ func (l *LeaderServer) DelFile(ctx context.Context, in *pb.DelFileRequest) (*pb.
 	}
 	// TODO: acquire file semaphore?
 	l.metadata.DelFile(in.FileName)
-	delete(l.fileSemaphore, in.FileName)
 	return &pb.DelFileReply{}, nil
 }

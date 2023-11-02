@@ -10,7 +10,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/metadata"
 	pb "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/proto"
-	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc"
 )
 
@@ -21,7 +20,6 @@ type LeaderServer struct {
 	leader         string
 	hostname       string
 	metadata       *metadata.Metadata
-	fileSemaphore  map[string]*semaphore.Weighted
 	blockSize      int64
 
 	recoverReplicaTicker     *time.Ticker
@@ -50,7 +48,6 @@ func NewLeaderServer(port, dataServerPort string, blockSize int64, replicationFa
 		leader:            "", // find the right leader
 		hostname:          hostname,
 		metadata:          metadata.NewMetadata(),
-		fileSemaphore:     map[string]*semaphore.Weighted{},
 		blockSize:         blockSize,
 		replicationFactor: replicationFactor,
 	}
@@ -93,11 +90,11 @@ func (l *LeaderServer) GetMetadata(ctx context.Context, in *pb.GetMetadataReques
 	getMetadaReply := &pb.GetMetadataReply{
 		FileInfo: map[string]*pb.BlockInfo{},
 	}
-	for fileName, blockInfo := range metadata.GetFileInfo() {
+	for fileName, fileInfo := range metadata.GetFileInfo() {
 		getMetadaReply.FileInfo[fileName] = &pb.BlockInfo{
 			BlockInfo: map[int64]*pb.BlockMeta{},
 		}
-		for blockID, blockMeta := range blockInfo {
+		for blockID, blockMeta := range fileInfo.BlockInfo {
 			getMetadaReply.FileInfo[fileName].BlockInfo[blockID] = &pb.BlockMeta{
 				HostNames: blockMeta.HostNames,
 				FileName:  blockMeta.FileName,
@@ -126,13 +123,9 @@ func (l *LeaderServer) setLeader(leader string) {
 }
 
 func (l *LeaderServer) acquireFileSemaphore(fileName string, weight int64) error {
-	if _, ok := l.fileSemaphore[fileName]; !ok {
-		return fmt.Errorf("file %s not found", fileName)
-	}
-	l.fileSemaphore[fileName].Acquire(context.Background(), weight)
-	return nil
+	return l.metadata.AcquireFileSemaphore(fileName, weight)
 }
 
 func (l *LeaderServer) releaseFileSemaphore(fileName string, weight int64) {
-	l.fileSemaphore[fileName].Release(weight)
+	l.metadata.ReleaseFileSemaphore(fileName, weight)
 }
