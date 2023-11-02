@@ -19,6 +19,14 @@ func (c *Client) DelFile(sdfsfilename string) error {
 	}
 	logrus.Infof("Leader is %s", leader)
 
+	// acquire write lock
+	err = c.acquireFileWriteLock(leader, sdfsfilename)
+	if err != nil {
+		return err
+	}
+	defer c.releaseFileWriteLock(leader, sdfsfilename)
+	logrus.Infof("Acquired write lock of file %s", sdfsfilename)
+
 	err = c.delFile(leader, sdfsfilename)
 	if err != nil {
 		return err

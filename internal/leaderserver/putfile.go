@@ -12,10 +12,6 @@ import (
 
 // PutBlockInfo handles the request to choose the block to put the file
 func (l *LeaderServer) PutBlockInfo(ctx context.Context, in *pb.PutBlockInfoRequest) (*pb.PutBlockInfoReply, error) {
-	// acquire file semaphore if file exists
-	if l.metadata.IsFileExist(in.FileName) {
-		l.acquireFileSemaphore(in.FileName, 2)
-	}
 	blockInfo, err := l.putBlockInfo(in.FileName, in.FileSize)
 	if err != nil {
 		return nil, err
@@ -73,10 +69,6 @@ func (l *LeaderServer) selectBlockHosts() []string {
 }
 
 func (l *LeaderServer) PutFileOK(ctx context.Context, in *pb.PutFileOKRequest) (*pb.PutFileOKReply, error) {
-	// release the file semaphore if file exists
-	if l.metadata.IsFileExist(in.FileName) {
-		l.releaseFileSemaphore(in.FileName, 2)
-	}
 	blockInfo := metadata.BlockInfo{}
 	for blockID, blockMeta := range in.BlockInfo {
 		blockInfo[blockID] = metadata.BlockMeta{

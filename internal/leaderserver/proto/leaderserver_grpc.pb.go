@@ -30,6 +30,10 @@ type LeaderServerClient interface {
 	DelFile(ctx context.Context, in *DelFileRequest, opts ...grpc.CallOption) (*DelFileReply, error)
 	GetMetadata(ctx context.Context, in *GetMetadataRequest, opts ...grpc.CallOption) (*GetMetadataReply, error)
 	SetLeader(ctx context.Context, in *SetLeaderRequest, opts ...grpc.CallOption) (*SetLeaderReply, error)
+	AcquireReadLock(ctx context.Context, in *AcquireLockRequest, opts ...grpc.CallOption) (*AcquireLockReply, error)
+	ReleaseReadLock(ctx context.Context, in *ReleaseLockRequest, opts ...grpc.CallOption) (*ReleaseLockReply, error)
+	AcquireWriteLock(ctx context.Context, in *AcquireLockRequest, opts ...grpc.CallOption) (*AcquireLockReply, error)
+	ReleaseWriteLock(ctx context.Context, in *ReleaseLockRequest, opts ...grpc.CallOption) (*ReleaseLockReply, error)
 }
 
 type leaderServerClient struct {
@@ -112,6 +116,42 @@ func (c *leaderServerClient) SetLeader(ctx context.Context, in *SetLeaderRequest
 	return out, nil
 }
 
+func (c *leaderServerClient) AcquireReadLock(ctx context.Context, in *AcquireLockRequest, opts ...grpc.CallOption) (*AcquireLockReply, error) {
+	out := new(AcquireLockReply)
+	err := c.cc.Invoke(ctx, "/leaderserver.LeaderServer/AcquireReadLock", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *leaderServerClient) ReleaseReadLock(ctx context.Context, in *ReleaseLockRequest, opts ...grpc.CallOption) (*ReleaseLockReply, error) {
+	out := new(ReleaseLockReply)
+	err := c.cc.Invoke(ctx, "/leaderserver.LeaderServer/ReleaseReadLock", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *leaderServerClient) AcquireWriteLock(ctx context.Context, in *AcquireLockRequest, opts ...grpc.CallOption) (*AcquireLockReply, error) {
+	out := new(AcquireLockReply)
+	err := c.cc.Invoke(ctx, "/leaderserver.LeaderServer/AcquireWriteLock", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *leaderServerClient) ReleaseWriteLock(ctx context.Context, in *ReleaseLockRequest, opts ...grpc.CallOption) (*ReleaseLockReply, error) {
+	out := new(ReleaseLockReply)
+	err := c.cc.Invoke(ctx, "/leaderserver.LeaderServer/ReleaseWriteLock", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // LeaderServerServer is the server API for LeaderServer service.
 // All implementations must embed UnimplementedLeaderServerServer
 // for forward compatibility
@@ -124,6 +164,10 @@ type LeaderServerServer interface {
 	DelFile(context.Context, *DelFileRequest) (*DelFileReply, error)
 	GetMetadata(context.Context, *GetMetadataRequest) (*GetMetadataReply, error)
 	SetLeader(context.Context, *SetLeaderRequest) (*SetLeaderReply, error)
+	AcquireReadLock(context.Context, *AcquireLockRequest) (*AcquireLockReply, error)
+	ReleaseReadLock(context.Context, *ReleaseLockRequest) (*ReleaseLockReply, error)
+	AcquireWriteLock(context.Context, *AcquireLockRequest) (*AcquireLockReply, error)
+	ReleaseWriteLock(context.Context, *ReleaseLockRequest) (*ReleaseLockReply, error)
 	mustEmbedUnimplementedLeaderServerServer()
 }
 
@@ -154,6 +198,18 @@ func (UnimplementedLeaderServerServer) GetMetadata(context.Context, *GetMetadata
 }
 func (UnimplementedLeaderServerServer) SetLeader(context.Context, *SetLeaderRequest) (*SetLeaderReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetLeader not implemented")
+}
+func (UnimplementedLeaderServerServer) AcquireReadLock(context.Context, *AcquireLockRequest) (*AcquireLockReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AcquireReadLock not implemented")
+}
+func (UnimplementedLeaderServerServer) ReleaseReadLock(context.Context, *ReleaseLockRequest) (*ReleaseLockReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReleaseReadLock not implemented")
+}
+func (UnimplementedLeaderServerServer) AcquireWriteLock(context.Context, *AcquireLockRequest) (*AcquireLockReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AcquireWriteLock not implemented")
+}
+func (UnimplementedLeaderServerServer) ReleaseWriteLock(context.Context, *ReleaseLockRequest) (*ReleaseLockReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReleaseWriteLock not implemented")
 }
 func (UnimplementedLeaderServerServer) mustEmbedUnimplementedLeaderServerServer() {}
 
@@ -312,6 +368,78 @@ func _LeaderServer_SetLeader_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _LeaderServer_AcquireReadLock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AcquireLockRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LeaderServerServer).AcquireReadLock(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/leaderserver.LeaderServer/AcquireReadLock",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LeaderServerServer).AcquireReadLock(ctx, req.(*AcquireLockRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LeaderServer_ReleaseReadLock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReleaseLockRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LeaderServerServer).ReleaseReadLock(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/leaderserver.LeaderServer/ReleaseReadLock",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LeaderServerServer).ReleaseReadLock(ctx, req.(*ReleaseLockRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LeaderServer_AcquireWriteLock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AcquireLockRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LeaderServerServer).AcquireWriteLock(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/leaderserver.LeaderServer/AcquireWriteLock",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LeaderServerServer).AcquireWriteLock(ctx, req.(*AcquireLockRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LeaderServer_ReleaseWriteLock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReleaseLockRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LeaderServerServer).ReleaseWriteLock(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/leaderserver.LeaderServer/ReleaseWriteLock",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LeaderServerServer).ReleaseWriteLock(ctx, req.(*ReleaseLockRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // LeaderServer_ServiceDesc is the grpc.ServiceDesc for LeaderServer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -350,6 +478,22 @@ var LeaderServer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetLeader",
 			Handler:    _LeaderServer_SetLeader_Handler,
+		},
+		{
+			MethodName: "AcquireReadLock",
+			Handler:    _LeaderServer_AcquireReadLock_Handler,
+		},
+		{
+			MethodName: "ReleaseReadLock",
+			Handler:    _LeaderServer_ReleaseReadLock_Handler,
+		},
+		{
+			MethodName: "AcquireWriteLock",
+			Handler:    _LeaderServer_AcquireWriteLock_Handler,
+		},
+		{
+			MethodName: "ReleaseWriteLock",
+			Handler:    _LeaderServer_ReleaseWriteLock_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

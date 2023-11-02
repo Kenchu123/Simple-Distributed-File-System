@@ -10,10 +10,6 @@ import (
 )
 
 func (l *LeaderServer) GetBlockInfo(ctx context.Context, in *pb.GetBlockInfoRequest) (*pb.GetBlockInfoReply, error) {
-	err := l.acquireFileSemaphore(in.FileName, 1)
-	if err != nil {
-		return nil, err
-	}
 	blockInfo, err := l.getBlockInfo(in.FileName)
 	if err != nil {
 		return nil, err
@@ -39,6 +35,5 @@ func (l *LeaderServer) GetFileOK(ctx context.Context, in *pb.GetFileOKRequest) (
 	if l.metadata.IsFileExist(in.FileName) == false {
 		return nil, fmt.Errorf("file %s not found", in.FileName)
 	}
-	l.releaseFileSemaphore(in.FileName, 1)
 	return &pb.GetFileOKReply{}, nil
 }

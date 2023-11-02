@@ -13,6 +13,10 @@ service LeaderServer {
     rpc DelFile(DelFileRequest) returns (DelFileReply) {}
     rpc GetMetadata(GetMetadataRequest) returns (GetMetadataReply) {}
     rpc SetLeader(SetLeaderRequest) returns (SetLeaderReply) {}
+    rpc AcquireReadLock(AcquireLockRequest) returns (AcquireLockReply) {}
+    rpc ReleaseReadLock(ReleaseLockRequest) returns (ReleaseLockReply) {}
+    rpc AcquireWriteLock(AcquireLockRequest) returns (AcquireLockReply) {}
+    rpc ReleaseWriteLock(ReleaseLockRequest) returns (ReleaseLockReply) {}
 }
 
 message BlockInfo {
@@ -80,3 +84,16 @@ message SetLeaderRequest {
 message SetLeaderReply {
     bool ok = 1;
 }
+
+
+message AcquireLockRequest {
+    string fileName = 1;
+}
+
+message AcquireLockReply {}
+
+message ReleaseLockRequest {
+    string fileName = 1;
+}
+
+message ReleaseLockReply {}

@@ -38,11 +38,18 @@ func (c *Client) PutFile(localfilename, sdfsfilename string) error {
 	logrus.Infof("Leader is %s", leader)
 
 	blockInfo, err := c.putBlockInfo(leader, sdfsfilename, fileInfo.Size())
-	defer c.putFileOK(leader, sdfsfilename, blockInfo)
 	if err != nil {
 		return err
 	}
 	logrus.Infof("Got blockInfo %+v", blockInfo)
+
+	// acquire write lock
+	err = c.acquireFileWriteLock(leader, sdfsfilename)
+	if err != nil {
+		return err
+	}
+	defer c.releaseFileWriteLock(leader, sdfsfilename)
+	logrus.Infof("Acquired write lock of file %s", sdfsfilename)
 
 	eg, _ := errgroup.WithContext(context.Background())
 	for i := int64(0); i < int64(len(blockInfo)); i++ {
@@ -71,10 +78,13 @@ func (c *Client) PutFile(localfilename, sdfsfilename string) error {
 		}
 	}
 	if err := eg.Wait(); err != nil {
-		return fmt.Errorf("Failed to put file %s to SDFS with error %w", sdfsfilename, err)
+		return fmt.Errorf("Failed to put file %s to SDFS: %w", sdfsfilename, err)
+	}
+	err = c.putFileOK(leader, sdfsfilename, blockInfo)
+	if err != nil {
+		return fmt.Errorf("Failed to put file %s OK to leader %s: %w", sdfsfilename, leader, err)
 	}
 	logrus.Infof("Put all blocks of file %s to SDFS", sdfsfilename)
-	// TODO: putblockOK
 	return nil
 }
 

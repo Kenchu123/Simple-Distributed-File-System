@@ -1,11 +1,8 @@
 package metadata
 
 import (
-	"context"
 	"fmt"
 	"sync"
-
-	"golang.org/x/sync/semaphore"
 )
 
 // Metadata handle metadata.
@@ -15,7 +12,6 @@ type Metadata struct {
 }
 
 type FileInfo struct {
-	semaphore *semaphore.Weighted
 	BlockInfo BlockInfo
 }
 
@@ -66,7 +62,6 @@ func (m *Metadata) AddOrUpdateBlockInfo(fileName string, blockInfo BlockInfo) {
 		defer m.mu.Unlock()
 		m.fileInfo[fileName] = FileInfo{
 			BlockInfo: blockInfo,
-			semaphore: semaphore.NewWeighted(2),
 		}
 	} else {
 		m.mu.Lock()
@@ -105,20 +100,4 @@ func (m *Metadata) DelFile(fileName string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	delete(m.fileInfo, fileName)
-}
-
-func (m *Metadata) AcquireFileSemaphore(fileName string, weight int64) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if _, ok := m.fileInfo[fileName]; !ok {
-		return fmt.Errorf("file %s not found", fileName)
-	}
-	m.fileInfo[fileName].semaphore.Acquire(context.Background(), weight)
-	return nil
-}
-
-func (m *Metadata) ReleaseFileSemaphore(fileName string, weight int64) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.fileInfo[fileName].semaphore.Release(weight)
 }

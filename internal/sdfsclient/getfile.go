@@ -27,13 +27,19 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 	logrus.Infof("Leader is %s", leader)
 
 	// get blockInfo from leader
-	// TODO: handle waiting timeout in the getBlockInfo
 	blockInfo, err := c.getBlockInfo(leader, sdfsfilename)
-	defer c.getFileOK(leader, sdfsfilename)
 	if err != nil {
 		return err
 	}
 	logrus.Infof("Got blockInfo %+v", blockInfo)
+
+	// acquire read lock
+	err = c.acquireFileReadLock(leader, sdfsfilename)
+	if err != nil {
+		return err
+	}
+	defer c.releaseFileReadLock(leader, sdfsfilename)
+	logrus.Infof("Acquired read lock of file %s", sdfsfilename)
 
 	// get file blocks from data servers
 	mu := sync.Mutex{}
@@ -149,10 +155,11 @@ func (c *Client) getFileBlock(hostname, filename string, blockID int64) ([]byte,
 }
 
 // getFileOK tells the leader server that the client has got the file.
-func (c *Client) getFileOK(hostname, fileName string) error {
+func (c *Client) getFileOK(hostname, fileName string) {
 	conn, err := grpc.Dial(hostname+":"+c.leaderServerPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return fmt.Errorf("cannot connect to %s leaderServer: %v", hostname, err)
+		logrus.Errorf("failed to get file OK: %v", err)
+		return
 	}
 	defer conn.Close()
 
@@ -163,7 +170,8 @@ func (c *Client) getFileOK(hostname, fileName string) error {
 		FileName: fileName,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to get file OK: %v", err)
+		logrus.Errorf("failed to get file OK: %v", err)
+		return
 	}
-	return nil
+	return
 }

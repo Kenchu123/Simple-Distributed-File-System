@@ -20,6 +20,7 @@ type LeaderServer struct {
 	leader         string
 	hostname       string
 	metadata       *metadata.Metadata
+	fileLock       *FileLock
 	blockSize      int64
 
 	recoverReplicaTicker     *time.Ticker
@@ -48,6 +49,7 @@ func NewLeaderServer(port, dataServerPort string, blockSize int64, replicationFa
 		leader:            "", // find the right leader
 		hostname:          hostname,
 		metadata:          metadata.NewMetadata(),
+		fileLock:          NewFileLock(),
 		blockSize:         blockSize,
 		replicationFactor: replicationFactor,
 	}
@@ -120,12 +122,4 @@ func (l *LeaderServer) setLeader(leader string) {
 		logrus.Infof("leader changed from %s to %s", l.leader, leader)
 	}
 	l.leader = leader
-}
-
-func (l *LeaderServer) acquireFileSemaphore(fileName string, weight int64) error {
-	return l.metadata.AcquireFileSemaphore(fileName, weight)
-}
-
-func (l *LeaderServer) releaseFileSemaphore(fileName string, weight int64) {
-	l.metadata.ReleaseFileSemaphore(fileName, weight)
 }
