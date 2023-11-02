@@ -41,11 +41,12 @@ func (l *LeaderServer) electLeader() {
 	}
 	members := _membership.GetAliveMembers()
 	// If leader is not alive, reset the leader
-	if _, ok := members[l.leader]; !ok {
+	leader := l.getLeader()
+	if _, ok := members[leader]; !ok {
 		l.setLeader("")
 	}
 	// If there is no leader, elect a leader
-	leader := l.getLeader()
+	leader = l.getLeader()
 	if leader == "" {
 		// See if the alive node with the largest ID is me
 		leader = l.electLeaderFromMembers(members)
@@ -79,17 +80,27 @@ func (l *LeaderServer) electLeader() {
 
 // electLeader elects the leader and returns the leader hostname.
 func (l *LeaderServer) electLeaderFromMembers(members map[string]*membership.Member) string {
-	// Find the members with the largest heartbeat, and then find the member with the smallest hostname
-	maxHeartbeat := 0
+	// // Find the members with the largest heartbeat, and then find the member with the smallest hostname
+	// maxHeartbeat := 0
+	// hostname := ""
+	// for _, member := range members {
+	// 	if member.Heartbeat > maxHeartbeat {
+	// 		maxHeartbeat = member.Heartbeat
+	// 		hostname = member.GetName()
+	// 	} else if member.Heartbeat == maxHeartbeat {
+	// 		if member.GetName() < hostname {
+	// 			hostname = member.GetName()
+	// 		}
+	// 	}
+	// }
+
+	// Find the member with the smallest hostname
 	hostname := ""
 	for _, member := range members {
-		if member.Heartbeat > maxHeartbeat {
-			maxHeartbeat = member.Heartbeat
+		if hostname == "" {
 			hostname = member.GetName()
-		} else if member.Heartbeat == maxHeartbeat {
-			if member.GetName() < hostname {
-				hostname = member.GetName()
-			}
+		} else if member.GetName() < hostname {
+			hostname = member.GetName()
 		}
 	}
 	return hostname
