@@ -110,14 +110,19 @@ func (c *Client) putBlockInfo(leader, fileName string, fileSize int64) (metadata
 
 // putFileBlock sends the file block to the data server.
 func (c *Client) putFileBlock(hostname, fileName string, blockID int64, data []byte) (bool, error) {
-	conn, err := grpc.Dial(hostname+":"+c.dataServerPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(hostname+":"+c.dataServerPort, []grpc.DialOption{
+		grpc.WithInitialWindowSize(1024 * 1024 * 1024),
+		grpc.WithInitialConnWindowSize(1024 * 1024 * 1024),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}...)
+
 	if err != nil {
 		return false, fmt.Errorf("cannot connect to dataServer: %v", err)
 	}
 	defer conn.Close()
 
 	client := dataServerProto.NewDataServerClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
 	stream, err := client.PutFileBlock(ctx)
 	if err != nil {
