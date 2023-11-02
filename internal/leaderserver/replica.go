@@ -33,6 +33,10 @@ func (l *LeaderServer) startRecoveringReplica() {
 	}
 }
 
+func (l *LeaderServer) stopRecoveringReplica() {
+	l.recoverReplicaTickerDone <- true
+}
+
 func (l *LeaderServer) recoverReplica() {
 	// TODO: only leader runs this
 	heartbeat, err := heartbeat.GetInstance()
@@ -42,7 +46,7 @@ func (l *LeaderServer) recoverReplica() {
 	}
 	membership := heartbeat.GetMembership()
 	if membership == nil {
-		logrus.Errorf("Failed to get membership instance")
+		logrus.Debugf("Failed to get membership instance")
 		return
 	}
 	members := membership.GetAliveMembers()
