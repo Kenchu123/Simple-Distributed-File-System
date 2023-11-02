@@ -14,6 +14,6 @@ func (h *IDHandler) Handle(args []string) (string, error) {
 	if !instance.IsRunning {
 		return "Not in the membership list", nil
 	}
-	id := instance.Membership.ID
+	id := instance.GetMembership().ID
 	return id, nil
 }

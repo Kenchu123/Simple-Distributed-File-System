@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/rand"
 
+	"github.com/sirupsen/logrus"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/metadata"
 	pb "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/proto"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/memberserver/heartbeat"
@@ -57,7 +58,12 @@ func (l *LeaderServer) selectBlockHosts() []string {
 		panic(err)
 	}
 	// Assuming that the alive members are more than replicationFactor
-	members := heartbeat.Membership.GetAliveMembers()
+	membership := heartbeat.GetMembership()
+	if membership == nil {
+		logrus.Errorf("failed to get membership instance")
+		return []string{}
+	}
+	members := membership.GetAliveMembers()
 	hostnames := []string{}
 	for _, member := range members {
 		hostnames = append(hostnames, member.GetName())

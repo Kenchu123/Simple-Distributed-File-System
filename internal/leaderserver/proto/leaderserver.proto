@@ -12,6 +12,7 @@ service LeaderServer {
     rpc PutFileOK(PutFileOKRequest) returns (PutFileOKReply) {}
     rpc DelFile(DelFileRequest) returns (DelFileReply) {}
     rpc GetMetadata(GetMetadataRequest) returns (GetMetadataReply) {}
+    rpc SetLeader(SetLeaderRequest) returns (SetLeaderReply) {}
 }
 
 message BlockInfo {
@@ -70,4 +71,12 @@ message GetMetadataRequest {}
 
 message GetMetadataReply {
     map<string, BlockInfo> fileInfo = 1;
+}
+
+message SetLeaderRequest {
+    string leader = 1;
+}
+
+message SetLeaderReply {
+    bool ok = 1;
 }

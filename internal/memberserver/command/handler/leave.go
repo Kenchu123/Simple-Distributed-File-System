@@ -18,7 +18,7 @@ func (h *LeaveHandler) Handle(args []string) (string, error) {
 		return "Not in the group", nil
 	}
 	// change the state of the node to leave
-	instance.Membership.UpdateSelfState(membership.LEFT)
+	instance.GetMembership().UpdateSelfState(membership.LEFT)
 	// TODO: fine tuning the time sleep here
 	time.Sleep(instance.Config.Heartbeat.Interval * 3)
 	instance.Stop()

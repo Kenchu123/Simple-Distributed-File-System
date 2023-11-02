@@ -29,6 +29,7 @@ type LeaderServerClient interface {
 	PutFileOK(ctx context.Context, in *PutFileOKRequest, opts ...grpc.CallOption) (*PutFileOKReply, error)
 	DelFile(ctx context.Context, in *DelFileRequest, opts ...grpc.CallOption) (*DelFileReply, error)
 	GetMetadata(ctx context.Context, in *GetMetadataRequest, opts ...grpc.CallOption) (*GetMetadataReply, error)
+	SetLeader(ctx context.Context, in *SetLeaderRequest, opts ...grpc.CallOption) (*SetLeaderReply, error)
 }
 
 type leaderServerClient struct {
@@ -102,6 +103,15 @@ func (c *leaderServerClient) GetMetadata(ctx context.Context, in *GetMetadataReq
 	return out, nil
 }
 
+func (c *leaderServerClient) SetLeader(ctx context.Context, in *SetLeaderRequest, opts ...grpc.CallOption) (*SetLeaderReply, error) {
+	out := new(SetLeaderReply)
+	err := c.cc.Invoke(ctx, "/leaderserver.LeaderServer/SetLeader", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // LeaderServerServer is the server API for LeaderServer service.
 // All implementations must embed UnimplementedLeaderServerServer
 // for forward compatibility
@@ -113,6 +123,7 @@ type LeaderServerServer interface {
 	PutFileOK(context.Context, *PutFileOKRequest) (*PutFileOKReply, error)
 	DelFile(context.Context, *DelFileRequest) (*DelFileReply, error)
 	GetMetadata(context.Context, *GetMetadataRequest) (*GetMetadataReply, error)
+	SetLeader(context.Context, *SetLeaderRequest) (*SetLeaderReply, error)
 	mustEmbedUnimplementedLeaderServerServer()
 }
 
@@ -140,6 +151,9 @@ func (UnimplementedLeaderServerServer) DelFile(context.Context, *DelFileRequest)
 }
 func (UnimplementedLeaderServerServer) GetMetadata(context.Context, *GetMetadataRequest) (*GetMetadataReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetMetadata not implemented")
+}
+func (UnimplementedLeaderServerServer) SetLeader(context.Context, *SetLeaderRequest) (*SetLeaderReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetLeader not implemented")
 }
 func (UnimplementedLeaderServerServer) mustEmbedUnimplementedLeaderServerServer() {}
 
@@ -280,6 +294,24 @@ func _LeaderServer_GetMetadata_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _LeaderServer_SetLeader_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetLeaderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LeaderServerServer).SetLeader(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/leaderserver.LeaderServer/SetLeader",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LeaderServerServer).SetLeader(ctx, req.(*SetLeaderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // LeaderServer_ServiceDesc is the grpc.ServiceDesc for LeaderServer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -314,6 +346,10 @@ var LeaderServer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetMetadata",
 			Handler:    _LeaderServer_GetMetadata_Handler,
+		},
+		{
+			MethodName: "SetLeader",
+			Handler:    _LeaderServer_SetLeader_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

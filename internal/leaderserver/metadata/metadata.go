@@ -52,6 +52,15 @@ func (m *Metadata) GetBlockMeta(fileName string, blockID int64) (BlockMeta, erro
 	return blockInfo[blockID], nil
 }
 
+func (m *Metadata) AddOrUpdateBlockMeta(fileName string, blockMeta BlockMeta) error {
+	blockInfo, err := m.GetBlockInfo(fileName)
+	if err != nil {
+		return err
+	}
+	blockInfo[blockMeta.BlockID] = blockMeta
+	return nil
+}
+
 func (m *Metadata) DelFile(fileName string) {
 	delete(m.FileInfo, fileName)
 }

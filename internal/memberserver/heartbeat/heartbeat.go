@@ -15,7 +15,7 @@ import (
 type Heartbeat struct {
 	Config     *config.Config
 	IsRunning  bool
-	Membership *membership.Membership
+	membership *membership.Membership
 
 	// ticker
 	heartbeatTicker     *time.Ticker
@@ -59,7 +59,7 @@ func New() (*Heartbeat, error) {
 	return &Heartbeat{
 		Config:                  conf,
 		IsRunning:               false,
-		Membership:              nil,
+		membership:              nil,
 		heartbeatTicker:         nil,
 		heartbeatTickerDone:     make(chan bool),
 		udpServer:               nil,
@@ -71,7 +71,7 @@ func New() (*Heartbeat, error) {
 // Start starts the heartbeat
 func (h *Heartbeat) Start() {
 	var err error
-	h.Membership, err = membership.New(h.Config.Heartbeat.Introducer, h.Config.Heartbeat.TargetNumber)
+	h.membership, err = membership.New(h.Config.Heartbeat.Introducer, h.Config.Heartbeat.TargetNumber)
 	if err != nil {
 		logrus.Errorf("failed to start: %v", err)
 		return
@@ -103,8 +103,8 @@ func (h *Heartbeat) startHeartbeating() {
 }
 
 func (h *Heartbeat) sendHeartbeat() {
-	h.Membership.IncreaseSelfHeartbeat()
-	hostnames := h.Membership.GetHeartbeatTargetMembers(h.Config.Machines)
+	h.membership.IncreaseSelfHeartbeat()
+	hostnames := h.membership.GetHeartbeatTargetMembers(h.Config.Machines)
 	logrus.Debug("Heartbeat target members: ", hostnames)
 	for _, hostname := range hostnames {
 		go func(hostname string) {
@@ -113,7 +113,7 @@ func (h *Heartbeat) sendHeartbeat() {
 				logrus.Errorf("failed to create udp client: %v", err)
 				return
 			}
-			payload, err := membership.Serialize(h.Membership)
+			payload, err := membership.Serialize(h.membership)
 			if err != nil {
 				logrus.Errorf("failed to serialize membership: %v", err)
 				return
@@ -123,7 +123,7 @@ func (h *Heartbeat) sendHeartbeat() {
 				logrus.Errorf("Failed to send heartbeat to %s, error: %v", hostname, err)
 				return
 			}
-			logrus.Debugf("Sending heartbeat to %s: %s", hostname, h.Membership)
+			logrus.Debugf("Sending heartbeat to %s: %s", hostname, h.membership)
 		}(hostname)
 	}
 }
@@ -147,7 +147,7 @@ func (h *Heartbeat) receiveHeartbeat(addr net.Addr, buffer []byte) {
 		return
 	}
 	logrus.Debugf("Received heartbeat from %s: %s", addr.String(), membership)
-	h.Membership.Update(membership)
+	h.membership.Update(membership)
 }
 
 func (h *Heartbeat) startDetectingFailure() {
@@ -166,7 +166,7 @@ func (h *Heartbeat) startDetectingFailure() {
 
 func (h *Heartbeat) detectFailure() {
 	logrus.Debug("Detecting failure")
-	h.Membership.DetectFailure(h.Config.FailureDetect)
+	h.membership.DetectFailure(h.Config.FailureDetect)
 }
 
 func (h *Heartbeat) startCleaningUp() {
@@ -178,7 +178,7 @@ func (h *Heartbeat) startCleaningUp() {
 		case <-h.cleanupTickerDone:
 			return
 		case <-h.cleanupTicker.C:
-			h.Membership.CleanUp(h.Config.Cleanup.Timeout)
+			h.membership.CleanUp(h.Config.Cleanup.Timeout)
 		}
 	}
 }
@@ -222,4 +222,9 @@ func (h *Heartbeat) SetSuspicion(enabled bool) {
 func (h *Heartbeat) SetDropRate(dropRate float32) {
 	logrus.Info("[DROPRATE] Set drop rate to ", dropRate)
 	h.Config.Heartbeat.DropRate = dropRate
+}
+
+// GetMembership returns the membership
+func (h *Heartbeat) GetMembership() *membership.Membership {
+	return h.membership
 }

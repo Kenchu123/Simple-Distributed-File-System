@@ -13,7 +13,7 @@ func (h *ListHandler) Handle(args []string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	b, err := json.MarshalIndent(instance.Membership, "", "  ")
+	b, err := json.MarshalIndent(instance.GetMembership(), "", "  ")
 	if err != nil {
 		return "", err
 	}

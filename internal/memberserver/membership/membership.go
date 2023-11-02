@@ -29,7 +29,7 @@ func New(introducer string, targetNumber int) (*Membership, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a new membership: %w", err)
 	}
-	if strings.Contains(member.ID, "fa23-cs425-8701.cs.illinois.edu") {
+	if strings.Contains(member.ID, introducer) {
 		logrus.Infof("I am the introducer")
 	}
 	return &Membership{
@@ -318,9 +318,9 @@ func (m *Membership) GetAliveMembers() map[string]*Member {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	members := map[string]*Member{}
-	for id, member := range m.Members {
+	for _, member := range m.Members {
 		if member.State == ALIVE {
-			members[id] = member
+			members[member.GetName()] = member
 		}
 	}
 	return members

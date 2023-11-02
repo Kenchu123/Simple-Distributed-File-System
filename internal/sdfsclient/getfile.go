@@ -46,7 +46,7 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 			defer wg.Done()
 			for _, hostName := range blockMeta.HostNames {
 				wg.Add(1)
-				go func(blockMeta metadata.BlockMeta, hostName string) {
+				go func(blockMeta metadata.BlockMeta, hostName string, mu *sync.Mutex) {
 					defer wg.Done()
 					logrus.Infof("Getting block %d of file %s from data server %s", blockMeta.BlockID, blockMeta.FileName, hostName)
 					data, err := c.getFileBlock(hostName, blockMeta.FileName, blockMeta.BlockID)
@@ -61,7 +61,7 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 						BlockID: blockMeta.BlockID,
 						Data:    data,
 					}
-				}(blockMeta, hostName)
+				}(blockMeta, hostName, &mu)
 			}
 		}(blockMeta)
 	}
