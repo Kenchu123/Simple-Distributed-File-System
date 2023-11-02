@@ -51,7 +51,7 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 					logrus.Infof("Getting block %d of file %s from data server %s", blockMeta.BlockID, blockMeta.FileName, hostName)
 					data, err := c.getFileBlock(hostName, blockMeta.FileName, blockMeta.BlockID)
 					if err != nil {
-						logrus.Infof("Failed to get block %d of file %s from data server %s", blockMeta.BlockID, blockMeta.FileName, hostName)
+						logrus.Infof("Failed to get block %d of file %s from data server %s with error %s", blockMeta.BlockID, blockMeta.FileName, hostName, err)
 						return
 					}
 					logrus.Infof("Got block %d of file %s from data server %s", blockMeta.BlockID, blockMeta.FileName, hostName)
@@ -70,7 +70,7 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 	buffers := make([]byte, 0)
 	for i := 0; i < len(blockInfo); i++ {
 		if _, ok := blocks[int64(i)]; !ok {
-			return fmt.Errorf("block %d of file %s not found", i, sdfsfilename)
+			return fmt.Errorf("block %d of file %s not found in client memory", i, sdfsfilename)
 		}
 		buffers = append(buffers, blocks[int64(i)].Data...)
 	}
@@ -115,14 +115,16 @@ func (c *Client) getBlockInfo(leader, fileName string) (metadata.BlockInfo, erro
 
 // getFileBlock gets a block of a file from the data server.
 func (c *Client) getFileBlock(hostname, filename string, blockID int64) ([]byte, error) {
-	conn, err := grpc.Dial(hostname+":"+c.dataServerPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(hostname+":"+c.dataServerPort, grpc.WithInitialWindowSize(1024*1024*1024),
+		grpc.WithInitialConnWindowSize(1024*1024*1024),
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("cannot connect to dataServer: %v", err)
 	}
 	defer conn.Close()
 
 	client := dataServerProto.NewDataServerClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
 	stream, err := client.GetFileBlock(ctx, &dataServerProto.GetFileBlockRequest{FileName: filename, BlockID: blockID})
 	if err != nil {

@@ -141,18 +141,18 @@ func (l *LeaderServer) recoverReplica() {
 		}(toReplicate)
 	}
 	wg.Wait()
+	logrus.Infof("Recovered replica %+v", toReclicates)
 	return
 }
 
 func (l *LeaderServer) replicate(toReplicate ToReplicate) error {
-	logrus.Infof("Replicating %+v", toReplicate)
 	conn, err := grpc.Dial(toReplicate.From+":"+l.dataServerPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 	client := dataServerProto.NewDataServerClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
 	_, err = client.ReplicateFileBlock(ctx, &dataServerProto.ReplicateFileBlockRequest{
 		FileName: toReplicate.FileName,
@@ -162,6 +162,5 @@ func (l *LeaderServer) replicate(toReplicate ToReplicate) error {
 	if err != nil {
 		return err
 	}
-	logrus.Infof("Replicated %+v", toReplicate)
 	return nil
 }
