@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/dataserver"
 	dataServerProto "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/dataserver/proto"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/metadata"
 	leaderServerProto "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/proto"
@@ -44,7 +43,12 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 
 	// get file blocks from data servers
 	mu := sync.Mutex{}
-	blocks := map[int64]dataserver.DataBlock{}
+	tempFileName := fmt.Sprintf("%s.temp", localfilename)
+	file, err := os.Create(tempFileName)
+	if err != nil {
+		return fmt.Errorf("failed to create temp file %s: %v", tempFileName, err)
+	}
+	defer os.Remove(tempFileName)
 	// get the block file from multiple servers concurrently
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, blockMeta := range blockInfo {
@@ -61,10 +65,13 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 					logrus.Infof("Got block %d of file %s from data server %s", blockMeta.BlockID, blockMeta.FileName, hostName)
 					mu.Lock()
 					defer mu.Unlock()
-					blocks[blockMeta.BlockID] = dataserver.DataBlock{
-						BlockID: blockMeta.BlockID,
-						Data:    data,
+					// Write the block to the local temp file
+					_, err = file.WriteAt(data, blockMeta.BlockID*c.blockSize)
+					if err != nil {
+						logrus.Infof("Failed to write block %d of file %s to local temp file %s with error %s", blockMeta.BlockID, blockMeta.FileName, tempFileName, err)
+						continue
 					}
+					logrus.Infof("Wrote block %d of file %s from data server %s", blockMeta.BlockID, blockMeta.FileName, hostName)
 					return nil
 				}
 				return nil
@@ -75,27 +82,12 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 		return fmt.Errorf("Failed to get file %s from SDFS: %w", sdfsfilename, err)
 	}
 	logrus.Infof("Got all blocks of file %s from SDFS", sdfsfilename)
-
-	logrus.Infof("Writing file %s to local file %s", sdfsfilename, localfilename)
-	file, err := os.Create(localfilename)
+	// Move the temp file to the local file
+	err = os.Rename(tempFileName, localfilename)
 	if err != nil {
-		return fmt.Errorf("failed to create local file %s: %v", localfilename, err)
+		return fmt.Errorf("failed to rename temp file %s to local file %s: %v", tempFileName, localfilename, err)
 	}
-	var seek int64 = 0
-	for i := 0; i < len(blockInfo); i++ {
-		// Write the block to the local file
-		if _, ok := blocks[int64(i)]; !ok {
-			return fmt.Errorf("block %d of file %s not found in client memory", i, sdfsfilename)
-		}
-		logrus.Infof("Writing block %d of file %s to local file %s", i, sdfsfilename, localfilename)
-		n, err := file.WriteAt(blocks[int64(i)].Data, seek)
-		if err != nil {
-			return fmt.Errorf("failed to write file %s: %v", localfilename, err)
-		}
-		logrus.Infof("Wrote block %d of file %s to local file %s", i, sdfsfilename, localfilename)
-		seek += int64(n)
-	}
-	logrus.Infof("Wrote file %s to local file %s", sdfsfilename, localfilename)
+	logrus.Infof("Got file %s from SDFS to %s", sdfsfilename, localfilename)
 	return nil
 }
 
