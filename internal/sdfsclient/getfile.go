@@ -75,18 +75,25 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 		return fmt.Errorf("Failed to get file %s from SDFS: %w", sdfsfilename, err)
 	}
 	logrus.Infof("Got all blocks of file %s from SDFS", sdfsfilename)
-	buffers := make([]byte, 0)
+
+	logrus.Infof("Writing file %s to local file %s", sdfsfilename, localfilename)
+	file, err := os.Create(localfilename)
+	if err != nil {
+		return fmt.Errorf("failed to create local file %s: %v", localfilename, err)
+	}
+	var seek int64 = 0
 	for i := 0; i < len(blockInfo); i++ {
+		// Write the block to the local file
 		if _, ok := blocks[int64(i)]; !ok {
 			return fmt.Errorf("block %d of file %s not found in client memory", i, sdfsfilename)
 		}
-		buffers = append(buffers, blocks[int64(i)].Data...)
-	}
-
-	logrus.Infof("Writing file %s to local file %s", sdfsfilename, localfilename)
-	err = os.WriteFile(localfilename, buffers, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to write file %s: %v", localfilename, err)
+		logrus.Infof("Writing block %d of file %s to local file %s", i, sdfsfilename, localfilename)
+		n, err := file.WriteAt(blocks[int64(i)].Data, seek)
+		if err != nil {
+			return fmt.Errorf("failed to write file %s: %v", localfilename, err)
+		}
+		logrus.Infof("Wrote block %d of file %s to local file %s", i, sdfsfilename, localfilename)
+		seek += int64(n)
 	}
 	logrus.Infof("Wrote file %s to local file %s", sdfsfilename, localfilename)
 	return nil
