@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"sync"
 	"time"
@@ -54,8 +55,13 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 	for _, blockMeta := range blockInfo {
 		func(blockMeta metadata.BlockMeta) {
 			eg.Go(func() error {
+				// random order
+				hostNames := blockMeta.HostNames
+				rand.Shuffle(len(hostNames), func(i, j int) {
+					hostNames[i], hostNames[j] = hostNames[j], hostNames[i]
+				})
 				// try the first hostname, and the second ..., if all fail, return error
-				for _, hostName := range blockMeta.HostNames {
+				for _, hostName := range hostNames {
 					logrus.Infof("Getting block %d of file %s from data server %s", blockMeta.BlockID, blockMeta.FileName, hostName)
 					data, err := c.getFileBlock(hostName, blockMeta.FileName, blockMeta.BlockID)
 					if err != nil {
