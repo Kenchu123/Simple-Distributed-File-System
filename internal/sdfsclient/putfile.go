@@ -12,6 +12,7 @@ import (
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/metadata"
 	leaderServerProto "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/proto"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -51,6 +52,7 @@ func (c *Client) PutFile(localfilename, sdfsfilename string) error {
 	defer c.releaseFileWriteLock(leader, sdfsfilename)
 	logrus.Infof("Acquired write lock of file %s", sdfsfilename)
 
+	writeSem := semaphore.NewWeighted(10)
 	eg, _ := errgroup.WithContext(context.Background())
 	for i := int64(0); i < int64(len(blockInfo)); i++ {
 		// read a block from localfile
@@ -67,7 +69,13 @@ func (c *Client) PutFile(localfilename, sdfsfilename string) error {
 			// send the block to the data server
 			func(hostname, sdfsfilename string, blockID int64, block []byte) {
 				eg.Go(func() error {
-					_, err := c.putFileBlock(hostname, sdfsfilename, blockID, block)
+					// acquire a semaphore
+					err := writeSem.Acquire(context.Background(), 1)
+					defer writeSem.Release(1)
+					if err != nil {
+						return err
+					}
+					_, err = c.putFileBlock(hostname, sdfsfilename, blockID, block)
 					if err != nil {
 						return fmt.Errorf("Failed to put block %d of file %s to data server %s with error %w", blockID, sdfsfilename, hostname, err)
 					}

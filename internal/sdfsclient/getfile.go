@@ -59,10 +59,10 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 			eg.Go(func() error {
 				// acquire a semaphore
 				err := getSem.Acquire(context.Background(), 1)
+				defer getSem.Release(1)
 				if err != nil {
 					return err
 				}
-				defer getSem.Release(1)
 				// random order
 				hostNames := blockMeta.HostNames
 				rand.Shuffle(len(hostNames), func(i, j int) {
