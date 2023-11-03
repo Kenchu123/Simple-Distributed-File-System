@@ -14,6 +14,7 @@ import (
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/metadata"
 	leaderServerProto "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/proto"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -44,6 +45,7 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 
 	// get file blocks from data servers
 	mu := sync.Mutex{}
+	getSem := semaphore.NewWeighted(10)
 	tempFileName := fmt.Sprintf("%s.temp", localfilename)
 	file, err := os.Create(tempFileName)
 	if err != nil {
@@ -55,6 +57,12 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 	for _, blockMeta := range blockInfo {
 		func(blockMeta metadata.BlockMeta) {
 			eg.Go(func() error {
+				// acquire a semaphore
+				err := getSem.Acquire(context.Background(), 1)
+				if err != nil {
+					return err
+				}
+				defer getSem.Release(1)
 				// random order
 				hostNames := blockMeta.HostNames
 				rand.Shuffle(len(hostNames), func(i, j int) {
