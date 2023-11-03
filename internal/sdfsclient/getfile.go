@@ -63,10 +63,10 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 						continue
 					}
 					logrus.Infof("Got block %d of file %s from data server %s", blockMeta.BlockID, blockMeta.FileName, hostName)
-					mu.Lock()
-					defer mu.Unlock()
 					// Write the block to the local temp file
+					mu.Lock()
 					_, err = file.WriteAt(data, blockMeta.BlockID*c.blockSize)
+					mu.Unlock()
 					if err != nil {
 						logrus.Infof("Failed to write block %d of file %s to local temp file %s with error %s", blockMeta.BlockID, blockMeta.FileName, tempFileName, err)
 						continue
