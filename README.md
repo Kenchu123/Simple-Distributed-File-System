@@ -147,6 +147,102 @@ Global Flags:
   -m, --machine-regex string   regex for machines to join (e.g. "0[1-9]") (default ".*")
 ```
 
+### SDFS
+
+#### Get File
+
+`get` command get file from SDFS.
+
+```bash
+Usage:
+  sdfs get [sdfsfilename] [localfilename] [flags]
+
+Examples:
+  sdfs get sdfs_test local_test
+```
+
+#### Put File
+
+`put` command put file to SDFS.
+
+```bash
+Usage:
+  sdfs put [localfilename] [sdfsfilename] [flags]
+
+Examples:
+  sdfs put local_test sdfs_test
+```
+
+#### Delete File
+
+`delete` command delete file from SDFS.
+
+```bash
+Usage:
+  sdfs delete sdfsfilename [flags]
+
+Examples:
+  delete sdfs_test
+```
+
+#### List File
+
+`ls` command list file from SDFS.
+
+```bash
+Usage:
+  sdfs ls [sdfsfilename] [flags]
+
+Examples:
+  sdfs ls sdfs_test
+```
+
+#### Store File
+
+`store` command store file from SDFS.
+
+```bash
+Usage:
+  sdfs store [flags]
+
+Examples:
+  sdfs store
+```
+
+#### Multiread File
+
+`multiread` command launches multiple machines to read a file from SDFS.
+
+```bash
+Usage:
+  sdfs multiread [sdfsfilename] [localfilename] [flags]
+
+Examples:
+  sdfs multiread sdfs_test local_test -m "0[1-9]"
+
+Flags:
+  -c, --config string          path to config file (default ".sdfs/config.yml")
+  -h, --help                   help for multiread
+  -m, --machine-regex string   regex for machines to join (e.g. "0[1-9]") (default ".*")
+```
+
+#### Multiwrite File
+
+`multiwrite` command launches multiple machines to write a file to SDFS.
+
+```bash
+Usage:
+  sdfs multiwrite [localfilename] [sdfsfilename] [flags]
+
+Examples:
+  sdfs multiwrite local_test sdfs_test -m "0[1-9]"
+
+Flags:
+  -c, --config string          path to config file (default ".sdfs/config.yml")
+  -h, --help                   help for multiwrite
+  -m, --machine-regex string   regex for machines to join (e.g. "0[1-9]") (default ".*")
+```
+
 ## Development
 
 ### Prerequisites
