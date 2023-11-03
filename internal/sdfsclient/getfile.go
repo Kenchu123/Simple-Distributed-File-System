@@ -13,6 +13,7 @@ import (
 	dataServerProto "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/dataserver/proto"
 	"gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/metadata"
 	leaderServerProto "gitlab.engr.illinois.edu/ckchu2/cs425-mp3/internal/leaderserver/proto"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -45,20 +46,17 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 	mu := sync.Mutex{}
 	blocks := map[int64]dataserver.DataBlock{}
 	// get the block file from multiple servers concurrently
-	var wg sync.WaitGroup
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, blockMeta := range blockInfo {
-		wg.Add(1)
-		go func(blockMeta metadata.BlockMeta) {
-			defer wg.Done()
-			for _, hostName := range blockMeta.HostNames {
-				wg.Add(1)
-				go func(blockMeta metadata.BlockMeta, hostName string, mu *sync.Mutex) {
-					defer wg.Done()
+		func(blockMeta metadata.BlockMeta) {
+			eg.Go(func() error {
+				// try the first hostname, and the second ..., if all fail, return error
+				for _, hostName := range blockMeta.HostNames {
 					logrus.Infof("Getting block %d of file %s from data server %s", blockMeta.BlockID, blockMeta.FileName, hostName)
 					data, err := c.getFileBlock(hostName, blockMeta.FileName, blockMeta.BlockID)
 					if err != nil {
 						logrus.Infof("Failed to get block %d of file %s from data server %s with error %s", blockMeta.BlockID, blockMeta.FileName, hostName, err)
-						return
+						continue
 					}
 					logrus.Infof("Got block %d of file %s from data server %s", blockMeta.BlockID, blockMeta.FileName, hostName)
 					mu.Lock()
@@ -67,11 +65,15 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 						BlockID: blockMeta.BlockID,
 						Data:    data,
 					}
-				}(blockMeta, hostName, &mu)
-			}
+					return nil
+				}
+				return nil
+			})
 		}(blockMeta)
 	}
-	wg.Wait()
+	if err := eg.Wait(); err != nil {
+		return fmt.Errorf("Failed to get file %s from SDFS: %w", sdfsfilename, err)
+	}
 	logrus.Infof("Got all blocks of file %s from SDFS", sdfsfilename)
 	buffers := make([]byte, 0)
 	for i := 0; i < len(blockInfo); i++ {
