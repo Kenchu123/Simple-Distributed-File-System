@@ -23,7 +23,7 @@ func (c *Client) acquireFileReadLock(leader, fileName string) error {
 
 	client := leaderServerProto.NewLeaderServerClient(conn)
 	// TODO: acquire lock timeout
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*600)
 	defer cancel()
 	_, err = client.AcquireReadLock(ctx, &leaderServerProto.AcquireLockRequest{
 		FileName: fileName,
@@ -82,7 +82,7 @@ func (c *Client) acquireFileWriteLock(leader, fileName string) error {
 
 	client := leaderServerProto.NewLeaderServerClient(conn)
 	// TODO: acquire lock timeout
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*600)
 	defer cancel()
 	_, err = client.AcquireWriteLock(ctx, &leaderServerProto.AcquireLockRequest{
 		FileName: fileName,
