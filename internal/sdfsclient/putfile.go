@@ -38,12 +38,6 @@ func (c *Client) PutFile(localfilename, sdfsfilename string) error {
 	}
 	logrus.Infof("Leader is %s", leader)
 
-	blockInfo, err := c.putBlockInfo(leader, sdfsfilename, fileInfo.Size())
-	if err != nil {
-		return err
-	}
-	logrus.Infof("Got blockInfo %+v", blockInfo)
-
 	// acquire write lock
 	err = c.acquireFileWriteLock(leader, sdfsfilename)
 	if err != nil {
@@ -51,6 +45,12 @@ func (c *Client) PutFile(localfilename, sdfsfilename string) error {
 	}
 	defer c.releaseFileWriteLock(leader, sdfsfilename)
 	logrus.Infof("Acquired write lock of file %s", sdfsfilename)
+
+	blockInfo, err := c.putBlockInfo(leader, sdfsfilename, fileInfo.Size())
+	if err != nil {
+		return err
+	}
+	logrus.Infof("Got blockInfo %+v", blockInfo)
 
 	writeSem := semaphore.NewWeighted(10)
 	eg, _ := errgroup.WithContext(context.Background())

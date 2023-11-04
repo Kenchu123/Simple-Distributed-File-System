@@ -28,13 +28,6 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 	}
 	logrus.Infof("Leader is %s", leader)
 
-	// get blockInfo from leader
-	blockInfo, err := c.getBlockInfo(leader, sdfsfilename)
-	if err != nil {
-		return err
-	}
-	logrus.Infof("Got blockInfo %+v", blockInfo)
-
 	// acquire read lock
 	err = c.acquireFileReadLock(leader, sdfsfilename)
 	if err != nil {
@@ -42,6 +35,13 @@ func (c *Client) GetFile(sdfsfilename, localfilename string) error {
 	}
 	defer c.releaseFileReadLock(leader, sdfsfilename)
 	logrus.Infof("Acquired read lock of file %s", sdfsfilename)
+
+	// get blockInfo from leader
+	blockInfo, err := c.getBlockInfo(leader, sdfsfilename)
+	if err != nil {
+		return err
+	}
+	logrus.Infof("Got blockInfo %+v", blockInfo)
 
 	// get file blocks from data servers
 	mu := sync.Mutex{}
