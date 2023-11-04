@@ -72,7 +72,7 @@ func (c *Client) PutFile(localfilename, sdfsfilename string) error {
 				logrus.Infof("Read block %d of file %s with size %d", blockID, localfilename, n)
 				for _, hostname := range blockInfo[blockID].HostNames {
 					// send the block to the data server
-					_, err = c.putFileBlock(hostname, sdfsfilename, blockID, block)
+					_, err = c.putFileBlock(hostname, sdfsfilename, blockID, block[:n])
 					if err != nil {
 						return fmt.Errorf("Failed to put block %d of file %s to data server %s with error %w", blockID, sdfsfilename, hostname, err)
 					}
