@@ -55,35 +55,32 @@ func (c *Client) PutFile(localfilename, sdfsfilename string) error {
 	writeSem := semaphore.NewWeighted(10)
 	eg, _ := errgroup.WithContext(context.Background())
 	for i := int64(0); i < int64(len(blockInfo)); i++ {
-		// read a block from localfile
-		block := make([]byte, c.blockSize)
-		n, err := localfile.Read(block)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return fmt.Errorf("cannot read local file %s: %v", localfilename, err)
-		}
-		logrus.Infof("Read block %d of file %s with size %d", i, localfilename, n)
-		for _, hostname := range blockInfo[i].HostNames {
-			// send the block to the data server
-			func(hostname, sdfsfilename string, blockID int64, block []byte) {
-				eg.Go(func() error {
-					// acquire a semaphore
-					err := writeSem.Acquire(context.Background(), 1)
-					defer writeSem.Release(1)
-					if err != nil {
-						return err
-					}
+		func(sdfsfilename string, blockID int64, blockInfo metadata.BlockInfo) {
+			eg.Go(func() error {
+				// acquire a semaphore
+				err := writeSem.Acquire(context.Background(), 1)
+				defer writeSem.Release(1)
+				if err != nil {
+					return fmt.Errorf("failed to acquire semaphore: %v", err)
+				}
+				// read a block from localfile
+				block := make([]byte, c.blockSize)
+				n, err := localfile.ReadAt(block, blockID*c.blockSize)
+				if err != nil && err != io.EOF {
+					return fmt.Errorf("cannot read local file %s: %v", localfilename, err)
+				}
+				logrus.Infof("Read block %d of file %s with size %d", blockID, localfilename, n)
+				for _, hostname := range blockInfo[blockID].HostNames {
+					// send the block to the data server
 					_, err = c.putFileBlock(hostname, sdfsfilename, blockID, block)
 					if err != nil {
 						return fmt.Errorf("Failed to put block %d of file %s to data server %s with error %w", blockID, sdfsfilename, hostname, err)
 					}
 					logrus.Infof("Put block %d of file %s to data server %s", blockID, sdfsfilename, hostname)
-					return nil
-				})
-			}(hostname, sdfsfilename, i, block[:n])
-		}
+				}
+				return nil
+			})
+		}(sdfsfilename, i, blockInfo)
 	}
 	if err := eg.Wait(); err != nil {
 		return fmt.Errorf("Failed to put file %s to SDFS: %w", sdfsfilename, err)
