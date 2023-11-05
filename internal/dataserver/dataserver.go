@@ -3,6 +3,7 @@ package dataserver
 import (
 	"fmt"
 	"net"
+	"os"
 	"path/filepath"
 
 	"github.com/sirupsen/logrus"
@@ -32,6 +33,24 @@ type DataBlock struct {
 
 // NewDataServer creates a new dataserver.
 func NewDataServer(port, blocksDir string) *DataServer {
+	// clean up blocksDir
+	if err := filepath.Walk(blocksDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			logrus.Errorf("Failed to walk blocksDir %s: %v", blocksDir, err)
+			return err
+		}
+		if !info.IsDir() {
+			if err := os.Remove(path); err != nil {
+				logrus.Errorf("Failed to remove file %s: %v", path, err)
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		logrus.Errorf("Failed to clean up blocksDir %s: %v", blocksDir, err)
+		return nil
+	}
+
 	return &DataServer{
 		blocksDir: blocksDir,
 		port:      port,
