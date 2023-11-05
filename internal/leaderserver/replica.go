@@ -54,7 +54,7 @@ func (l *LeaderServer) recoverReplica() {
 	}
 	membership := heartbeat.GetMembership()
 	if membership == nil {
-		logrus.Debugf("Failed to get membership instance")
+		logrus.Errorf("Failed to get membership instance")
 		return
 	}
 	members := membership.GetAliveMembers()
