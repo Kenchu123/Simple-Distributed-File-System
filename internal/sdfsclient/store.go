@@ -19,13 +19,11 @@ func (c *Client) Store() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	logrus.Infof("metadata: %+v", metadata)
 
 	hostName, err := os.Hostname()
 	if err != nil {
 		return "", err
 	}
-	logrus.Infof("hostName: %s", hostName)
 
 	re := ""
 	for fileName, fileInfo := range metadata.GetFileInfo() {
