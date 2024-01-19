@@ -87,7 +87,7 @@ Flags:
 
 ### List Self's ID
 
-`list_self` command lists self's ID.
+`list_self` command lists the self's ID.
 
 ```bash
 ./bin/sdfs list_self [flags]
