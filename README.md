@@ -22,7 +22,7 @@ make build
 
 ### Serve
 
-`serve` command start the command server and wait for commands from clients.
+`serve` command starts the command server and wait for commands from clients.
 
 ```bash
 ./bin/sdfs serve [flags]
